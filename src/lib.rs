@@ -1,5 +1,6 @@
 
 mod ignite_client;
+mod ignite_configuration;
 
 #[cfg(test)]
 mod tests {
