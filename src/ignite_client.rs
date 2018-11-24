@@ -1,15 +1,29 @@
+use super::IgniteConfiguration;
+
 #[derive(Debug)]
 struct IgniteClient {
 }
 
 impl IgniteClient {
     /// Start Ignite client with default configuration.
-    pub fn start() -> Result<IgniteClient, String> {
+    pub fn start_default() -> Result<IgniteClient, String> {
+        Ok(IgniteClient{})
+    }
+
+    pub fn start(cfg : IgniteConfiguration) -> Result<IgniteClient, String> {
         Ok(IgniteClient{})
     }
 }
 
 #[test]
 fn ignite_client_new_default() {
-    IgniteClient::start().unwrap();
+    IgniteClient::start_default().unwrap();
+}
+
+#[test]
+fn ignite_client_new_with_config() {
+    let mut cfg = IgniteConfiguration::new();
+    cfg.set_endpoints("127.0.0.1:10800");
+
+    IgniteClient::start(cfg).unwrap();
 }
