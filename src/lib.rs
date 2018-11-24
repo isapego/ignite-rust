@@ -2,6 +2,8 @@
 mod ignite_client;
 mod ignite_configuration;
 
+pub use ignite_configuration::IgniteConfiguration;
+
 #[cfg(test)]
 mod tests {
     #[test]
