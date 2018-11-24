@@ -1,4 +1,3 @@
-
 mod ignite_client;
 mod ignite_configuration;
 

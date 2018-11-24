@@ -2,13 +2,15 @@ use std::convert::Into;
 
 #[derive(Debug)]
 pub struct IgniteConfiguration {
-    end_points :String
+    end_points: String,
 }
 
 impl IgniteConfiguration {
     /// Create new configuration with default parameters.
     pub fn new() -> IgniteConfiguration {
-        IgniteConfiguration{ end_points : String::new() }
+        IgniteConfiguration {
+            end_points: String::new(),
+        }
     }
 
     /// Set endpoints to connect to.
