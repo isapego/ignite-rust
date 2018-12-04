@@ -15,12 +15,12 @@ impl IgniteClient {
 }
 
 #[test]
-fn ignite_client_new_default() {
+fn ignite_client_start_default() {
     IgniteClient::start_default().unwrap();
 }
 
 #[test]
-fn ignite_client_new_with_config() {
+fn ignite_client_start_with_config() {
     let mut cfg = IgniteConfiguration::new();
     cfg.set_endpoints("127.0.0.1:10800");
 
