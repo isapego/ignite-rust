@@ -11,25 +11,32 @@ struct IgniteErrorContents {
 impl IgniteErrorContents {
     /// Make new instance
     fn new(message: String, cause: Option<Box<Error>>) -> IgniteErrorContents {
-        IgniteErrorContents{message: message, cause: cause}
+        IgniteErrorContents {
+            message: message,
+            cause: cause,
+        }
     }
 }
 
 /// Ignite error
 #[derive(Debug)]
 pub struct IgniteError {
-    err : Box<IgniteErrorContents>,
+    err: Box<IgniteErrorContents>,
 }
 
 impl IgniteError {
     /// Create new IgniteError instance
     pub fn new(message: String) -> IgniteError {
-        IgniteError{err: Box::new(IgniteErrorContents::new(message, None))}
+        IgniteError {
+            err: Box::new(IgniteErrorContents::new(message, None)),
+        }
     }
 
     /// Create new IgniteError instance with cause
     pub fn new_with_cause(message: String, cause: Box<Error>) -> IgniteError {
-        IgniteError{err: Box::new(IgniteErrorContents::new(message, Some(cause)))}
+        IgniteError {
+            err: Box::new(IgniteErrorContents::new(message, Some(cause))),
+        }
     }
 }
 
