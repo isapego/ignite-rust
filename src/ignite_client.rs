@@ -1,7 +1,7 @@
 use super::IgniteConfiguration;
 
 #[derive(Debug)]
-struct IgniteClient {}
+pub struct IgniteClient {}
 
 impl IgniteClient {
     /// Start Ignite client with default configuration.
