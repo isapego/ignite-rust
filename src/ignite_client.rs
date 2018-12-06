@@ -10,6 +10,7 @@ impl IgniteClient {
         Ok(IgniteClient {})
     }
 
+    /// Start new Ignite client.
     pub fn start(_cfg: IgniteConfiguration) -> Result<IgniteClient, IgniteError> {
         Ok(IgniteClient {})
     }
