@@ -1,15 +1,16 @@
-use super::IgniteConfiguration;
+use IgniteConfiguration;
+use IgniteError;
 
 #[derive(Debug)]
 pub struct IgniteClient {}
 
 impl IgniteClient {
     /// Start Ignite client with default configuration.
-    pub fn start_default() -> Result<IgniteClient, String> {
+    pub fn start_default() -> Result<IgniteClient, IgniteError> {
         Ok(IgniteClient {})
     }
 
-    pub fn start(_cfg: IgniteConfiguration) -> Result<IgniteClient, String> {
+    pub fn start(_cfg: IgniteConfiguration) -> Result<IgniteClient, IgniteError> {
         Ok(IgniteClient {})
     }
 }

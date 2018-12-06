@@ -1,15 +1,12 @@
-extern crate rand;
 extern crate ignite_rust;
+extern crate rand;
 
 use ignite_rust::*;
-use rand::{thread_rng, Rng};
 use rand::distributions::Alphanumeric;
+use rand::{thread_rng, Rng};
 
 fn make_unique_name() -> String {
-    thread_rng()
-        .sample_iter(&Alphanumeric)
-        .take(64)
-        .collect()
+    thread_rng().sample_iter(&Alphanumeric).take(64).collect()
 }
 
 #[test]
