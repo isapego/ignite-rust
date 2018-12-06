@@ -58,6 +58,8 @@ impl fmt::Display for IgniteError {
     }
 }
 
+pub type IgniteResult<T> = Result<T, IgniteError>;
+
 #[cfg(test)]
 mod tests {
     use ignite_error::IgniteError;
