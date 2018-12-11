@@ -1,4 +1,5 @@
 mod data_router;
+mod end_point;
 mod ignite_client;
 mod ignite_configuration;
 mod ignite_error;

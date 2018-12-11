@@ -1,3 +1,4 @@
+use std::convert::{From, Into};
 use std::error::Error;
 use std::fmt;
 
@@ -26,16 +27,16 @@ pub struct IgniteError {
 
 impl IgniteError {
     /// Create new IgniteError instance
-    pub fn new(message: String) -> IgniteError {
+    pub fn new<S: Into<String>>(message: S) -> IgniteError {
         IgniteError {
-            err: Box::new(IgniteErrorContents::new(message, None)),
+            err: Box::new(IgniteErrorContents::new(message.into(), None)),
         }
     }
 
     /// Create new IgniteError instance with cause
-    pub fn new_with_source(message: String, cause: Box<Error>) -> IgniteError {
+    pub fn new_with_source<S: Into<String>>(message: S, cause: Box<Error>) -> IgniteError {
         IgniteError {
-            err: Box::new(IgniteErrorContents::new(message, Some(cause))),
+            err: Box::new(IgniteErrorContents::new(message.into(), Some(cause))),
         }
     }
 }
@@ -58,6 +59,15 @@ impl fmt::Display for IgniteError {
     }
 }
 
+impl<S> From<S> for IgniteError
+where
+    S: Into<String>,
+{
+    fn from(serr: S) -> Self {
+        IgniteError::new(serr)
+    }
+}
+
 pub type IgniteResult<T> = Result<T, IgniteError>;
 
 #[cfg(test)]
@@ -68,7 +78,7 @@ mod tests {
     static TEST_MSG: &str = "Test error";
 
     fn get_err() -> Result<(), IgniteError> {
-        Err(IgniteError::new(TEST_MSG.into()))
+        Err(IgniteError::new(TEST_MSG))
     }
 
     fn handling() -> Result<(), IgniteError> {
@@ -78,7 +88,7 @@ mod tests {
 
     fn source() -> Result<(), IgniteError> {
         let err = get_err().unwrap_err();
-        Err(IgniteError::new_with_source(TEST_MSG.into(), Box::new(err)))
+        Err(IgniteError::new_with_source(TEST_MSG, Box::new(err)))
     }
 
     #[test]
