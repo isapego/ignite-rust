@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
-use super::ignite_configuration::IgniteConfiguration;
-use super::ignite_error::IgniteResult;
+use ignite_configuration::IgniteConfiguration;
+use ignite_error::IgniteResult;
 
 /// Component which is responsible for establishing and
 /// maintaining reliable connection link to the Ignite cluster.

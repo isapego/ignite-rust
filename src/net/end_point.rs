@@ -1,4 +1,4 @@
-use super::ignite_error::{IgniteError, IgniteResult};
+use ignite_error::{IgniteError, IgniteResult};
 use std::convert::Into;
 use std::iter::Iterator;
 

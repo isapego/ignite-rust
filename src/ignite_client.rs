@@ -1,8 +1,8 @@
 use std::rc::Rc;
 
-use super::data_router::DataRouter;
 use super::ignite_configuration::IgniteConfiguration;
 use super::ignite_error::IgniteResult;
+use super::net::DataRouter;
 
 /// Ignite client
 /// Main entry point for the Ignite Rust thin client API.
