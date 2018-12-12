@@ -95,14 +95,6 @@ impl EndPoint {
     }
 }
 
-// Parse endpoints string.
-// The format is `"<host>[:<port>[..<port>]][,...]"`.
-// pub fn parse_endpoints(end_points: &str) -> SocketAddr {
-//     end_points.split(',').map(|end_point| {
-
-//     }).collect()
-// }
-
 #[test]
 fn end_point_from_string() {
     EndPoint::from_string("127.0.0.1").unwrap();
