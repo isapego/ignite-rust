@@ -1,6 +1,8 @@
-use ignite_error::{IgniteError, IgniteResult};
 use std::convert::Into;
-use std::iter::Iterator;
+use std::iter::{IntoIterator, Iterator};
+use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
+
+use ignite_error::{IgniteError, IgniteResult};
 
 /// Endpoint, pointing to a single host with a possible range of TCP ports.
 #[derive(Debug)]
@@ -92,6 +94,83 @@ impl EndPoint {
         };
 
         Ok(EndPoint::new(host, port_begin, port_end))
+    }
+
+    /// Resolve host IPs
+    fn resolve(&self) -> IgniteResult<ResolvedEndPoint> {
+        let iter = match self.host.as_str().to_socket_addrs() {
+            Ok(it) => it,
+            Err(err) => {
+                return Err(IgniteError::new_with_source(
+                    format!("Failed to resolve host address: {}", self.host),
+                    Box::new(err),
+                ))
+            }
+        };
+
+        let ips = iter.map(|addr| addr.ip()).collect();
+        Ok(ResolvedEndPoint {
+            ips: ips,
+            port_begin: self.port_begin,
+            port_end: self.port_end,
+        })
+    }
+}
+
+/// Endpoint, pointing to a single host with a possible range of TCP ports.
+#[derive(Debug)]
+pub struct ResolvedEndPoint {
+    ips: Vec<IpAddr>,
+    port_begin: u16,
+    port_end: u16,
+}
+
+/// Iterates over all possible addresses for the endpoint
+#[derive(Debug)]
+pub struct EndPointIterator {
+    ips: Vec<IpAddr>,
+    ip_idx: usize,
+    port: u16,
+    end_port: u16,
+}
+
+impl EndPointIterator {
+    /// Create new instance
+    fn new(end_point: ResolvedEndPoint) -> Self {
+        EndPointIterator {
+            ips: end_point.ips,
+            ip_idx: 0,
+            port: end_point.port_begin,
+            end_port: end_point.port_end,
+        }
+    }
+}
+
+impl Iterator for EndPointIterator {
+    type Item = SocketAddr;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.ip_idx + 1 < self.ips.len() {
+            self.ip_idx += 1;
+            return Some(SocketAddr::new(self.ips[self.ip_idx - 1], self.port));
+        }
+
+        if self.port < self.end_port {
+            self.port += 1;
+            self.ip_idx = 0;
+            return Some(SocketAddr::new(self.ips[self.ip_idx], self.port));
+        }
+
+        None
+    }
+}
+
+impl IntoIterator for ResolvedEndPoint {
+    type Item = SocketAddr;
+    type IntoIter = EndPointIterator;
+
+    fn into_iter(self) -> Self::IntoIter {
+        EndPointIterator::new(self)
     }
 }
 

@@ -1,3 +1,5 @@
+extern crate rand;
+
 mod ignite_client;
 mod ignite_configuration;
 mod ignite_error;
