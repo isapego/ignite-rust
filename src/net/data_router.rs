@@ -1,8 +1,8 @@
-use std::rc::Rc;
-use rand::thread_rng;
 use rand::seq::SliceRandom;
+use rand::thread_rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpStream};
+use std::rc::Rc;
 
 use ignite_configuration::IgniteConfiguration;
 use ignite_error::{IgniteResult, WrapError};
@@ -23,15 +23,25 @@ pub struct DataRouter {
 impl DataRouter {
     /// Make new instance
     pub fn new(cfg: Rc<IgniteConfiguration>) -> DataRouter {
-        DataRouter { cfg: cfg, conns: HashMap::new() }
+        DataRouter {
+            cfg: cfg,
+            conns: HashMap::new(),
+        }
     }
 
     fn try_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
-        let stream = TcpStream::connect(addr).wrap_on_error(format!("Failed to connect to remote host {}", addr))?;
+        let stream = TcpStream::connect(addr)
+            .wrap_on_error(format!("Failed to connect to remote host {}", addr))?;
 
         // TODO: replace error with warning here
-        stream.set_nodelay(true).wrap_on_error(format!("Failed to set connection to no-delay mode for host {}", addr))?;
-        stream.set_nonblocking(true).wrap_on_error(format!("Failed to set connection to non-bloaking mode for host {}", addr))?;
+        stream.set_nodelay(true).wrap_on_error(format!(
+            "Failed to set connection to no-delay mode for host {}",
+            addr
+        ))?;
+        stream.set_nonblocking(true).wrap_on_error(format!(
+            "Failed to set connection to non-bloaking mode for host {}",
+            addr
+        ))?;
 
         Ok(stream)
     }
@@ -43,7 +53,8 @@ impl DataRouter {
         &mut end_points[..].shuffle(&mut thread_rng());
 
         // TODO: Add logging here
-        let resolved : Vec<ResolvedEndPoint> = end_points.iter().filter_map(|x| x.resolve().ok()).collect();
+        let resolved: Vec<ResolvedEndPoint> =
+            end_points.iter().filter_map(|x| x.resolve().ok()).collect();
 
         for end_point in resolved {
             for addr in end_point {

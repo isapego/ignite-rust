@@ -74,7 +74,10 @@ pub trait WrapError<R> {
     fn wrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
 }
 
-impl<R, E> WrapError<R> for Result<R, E> where E: Error + 'static {
+impl<R, E> WrapError<R> for Result<R, E>
+where
+    E: Error + 'static,
+{
     fn wrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
         match self {
             Ok(r) => Ok(r),
