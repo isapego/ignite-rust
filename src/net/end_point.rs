@@ -97,7 +97,7 @@ impl EndPoint {
     }
 
     /// Resolve host IPs
-    fn resolve(&self) -> IgniteResult<ResolvedEndPoint> {
+    pub fn resolve(&self) -> IgniteResult<ResolvedEndPoint> {
         let iter = match self.host.as_str().to_socket_addrs() {
             Ok(it) => it,
             Err(err) => {
