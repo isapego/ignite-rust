@@ -70,11 +70,17 @@ where
 
 pub type IgniteResult<T> = Result<T, IgniteError>;
 
-pub trait WrapError<R> {
+/// Trait that intended to be implemented for Result
+/// types, enabling automatical wrapping of errors into
+/// IgniteResult.
+///
+/// FIXME: Can cause overhead on hot (Ok) route of execution.
+/// FIXME: Consider using macros instead.
+pub trait WrapOnError<R> {
     fn wrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
 }
 
-impl<R, E> WrapError<R> for Result<R, E>
+impl<R, E> WrapOnError<R> for Result<R, E>
 where
     E: Error + 'static,
 {

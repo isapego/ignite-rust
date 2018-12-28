@@ -5,7 +5,7 @@ use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
 
 use ignite_configuration::IgniteConfiguration;
-use ignite_error::{IgniteResult, WrapError};
+use ignite_error::{IgniteResult, WrapOnError};
 use net::end_point::ResolvedEndPoint;
 use net::utils;
 
