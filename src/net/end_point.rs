@@ -22,6 +22,11 @@ impl EndPoint {
         }
     }
 
+    // Get host.
+    pub fn host(&self) -> &str {
+        self.host.as_ref()
+    }
+
     /// Convert from string.
     /// The format is `"<host>[:<port>[..<port>]][,...]"`.
     pub fn from_string<'a, S: Into<&'a str>>(sadr: S) -> IgniteResult<Self> {
@@ -58,7 +63,7 @@ impl EndPoint {
                 return Err(IgniteError::new_with_source(
                     "Parsing error: can not parse port",
                     Box::new(e),
-                ))
+                ));
             }
         };
 
@@ -77,7 +82,7 @@ impl EndPoint {
                 return Err(IgniteError::new_with_source(
                     "Parsing error: can not parse port",
                     Box::new(e),
-                ))
+                ));
             }
         };
 
@@ -104,7 +109,7 @@ impl EndPoint {
                 return Err(IgniteError::new_with_source(
                     format!("Failed to resolve host address: {}", self.host),
                     Box::new(err),
-                ))
+                ));
             }
         };
 

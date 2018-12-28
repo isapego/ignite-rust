@@ -33,15 +33,18 @@ impl DataRouter {
         let stream = TcpStream::connect(addr)
             .wrap_on_error(format!("Failed to connect to remote host {}", addr))?;
 
-        // TODO: replace error with warning here
-        stream.set_nodelay(true).wrap_on_error(format!(
-            "Failed to set connection to no-delay mode for host {}",
-            addr
-        ))?;
         stream.set_nonblocking(true).wrap_on_error(format!(
             "Failed to set connection to non-bloaking mode for host {}",
             addr
         ))?;
+
+        stream.set_nodelay(true).unwrap_or_else(|e| {
+            warn!(
+                "Failed to set connection to no-delay mode for host {}.
+                   The cause is {}",
+                addr, e
+            );
+        });
 
         Ok(stream)
     }
@@ -52,14 +55,27 @@ impl DataRouter {
 
         &mut end_points[..].shuffle(&mut thread_rng());
 
-        // TODO: Add logging here
-        let resolved: Vec<ResolvedEndPoint> =
-            end_points.iter().filter_map(|x| x.resolve().ok()).collect();
+        let resolved: Vec<ResolvedEndPoint> = end_points
+            .iter()
+            .filter_map(|x| match x.resolve() {
+                Ok(r) => Some(r),
+                Err(e) => {
+                    warn!("Can not resolve host {}. The cause is {}", x.host(), e);
+                    None
+                }
+            })
+            .collect();
 
         for end_point in resolved {
             for addr in end_point {
-                // TODO: Add logging here
-                let stream = Self::try_connect(&addr)?;
+                let stream = match Self::try_connect(&addr) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        warn!("Can not connect to the host {}. The cause is {}", addr, e);
+                        continue;
+                    }
+                };
+
                 self.conns.insert(addr, stream);
 
                 return Ok(());

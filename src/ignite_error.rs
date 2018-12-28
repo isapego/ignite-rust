@@ -74,8 +74,7 @@ pub type IgniteResult<T> = Result<T, IgniteError>;
 /// types, enabling automatical wrapping of errors into
 /// IgniteResult.
 ///
-/// FIXME: Can cause overhead on hot (Ok) route of execution.
-/// FIXME: Consider using macros instead.
+/// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
 pub trait WrapOnError<R> {
     fn wrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
 }
