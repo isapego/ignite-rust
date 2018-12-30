@@ -1,9 +1,20 @@
 extern crate ignite_rust;
 extern crate rand;
+extern crate log;
+extern crate env_logger;
 
 use ignite_rust::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
+use std::sync::{Once, ONCE_INIT};
+
+static LOG_INIT: Once = ONCE_INIT;
+
+fn setup() {
+    LOG_INIT.call_once(|| {
+        env_logger::init();
+    });
+}
 
 fn make_unique_name() -> String {
     thread_rng().sample_iter(&Alphanumeric).take(64).collect()
@@ -11,11 +22,15 @@ fn make_unique_name() -> String {
 
 #[test]
 fn ignite_client_start_default() {
+    setup();
+
     IgniteClient::start_default().unwrap();
 }
 
 #[test]
 fn ignite_client_start_with_config() {
+    setup();
+
     let mut cfg = IgniteConfiguration::new();
     cfg.set_endpoints("127.0.0.1:10800");
 
@@ -24,6 +39,8 @@ fn ignite_client_start_with_config() {
 
 #[test]
 fn ignite_client_create_cache() {
+    setup();
+
     let mut cfg = IgniteConfiguration::new();
     cfg.set_endpoints("127.0.0.1:10800");
 

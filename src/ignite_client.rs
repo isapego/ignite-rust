@@ -21,10 +21,13 @@ impl IgniteClient {
     /// Start new Ignite client.
     pub fn start(cfg: IgniteConfiguration) -> IgniteResult<IgniteClient> {
         let cfg_rc = Rc::new(cfg);
+        let mut router = DataRouter::new(cfg_rc.clone());
+
+        router.initial_connect()?;
 
         Ok(IgniteClient {
             cfg: cfg_rc.clone(),
-            router: DataRouter::new(cfg_rc),
+            router: router,
         })
     }
 }
