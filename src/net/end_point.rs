@@ -2,9 +2,9 @@ use std::convert::Into;
 use std::iter::{IntoIterator, Iterator};
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
-use ignite_error::{IgniteResult, HandleResult};
+use ignite_error::{HandleResult, IgniteResult};
 
-pub const DEFAULT_PORT : u16 = 10800;
+pub const DEFAULT_PORT: u16 = 10800;
 
 /// Endpoint, pointing to a single host with a possible range of TCP ports.
 #[derive(Debug)]
@@ -59,8 +59,9 @@ impl EndPoint {
             None => return Err("Parsing error: Port can not be an empty string".into()),
         };
 
-        let port_begin = port_begin_s.parse::<u16>().rewrap_on_error(
-            "Parsing error: can not parse port")?;
+        let port_begin = port_begin_s
+            .parse::<u16>()
+            .rewrap_on_error("Parsing error: can not parse port")?;
 
         if port_begin == 0 {
             return Err("Parsing error: TCP port can not be zero".into());
@@ -71,8 +72,9 @@ impl EndPoint {
             None => return Ok(EndPoint::new(host, port_begin, 0)),
         };
 
-        let port_end = port_end_s.parse::<u16>().rewrap_on_error(
-                    "Parsing error: can not parse port range")?;
+        let port_end = port_end_s
+            .parse::<u16>()
+            .rewrap_on_error("Parsing error: can not parse port range")?;
 
         if port_begin > port_end {
             return Err(
@@ -92,8 +94,9 @@ impl EndPoint {
     /// Resolve host IPs
     pub fn resolve(&self) -> IgniteResult<ResolvedEndPoint> {
         let addr_tuple = (self.host.as_str(), self.port_begin);
-        let iter = addr_tuple.to_socket_addrs().rewrap_on_error(
-            format!("Failed to resolve host address: {}", self.host))?;
+        let iter = addr_tuple
+            .to_socket_addrs()
+            .rewrap_on_error(format!("Failed to resolve host address: {}", self.host))?;
 
         let ips = iter.map(|addr| addr.ip()).collect();
         Ok(ResolvedEndPoint {

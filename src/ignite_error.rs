@@ -1,7 +1,7 @@
+use log::Level;
 use std::convert::{From, Into};
 use std::error::Error;
 use std::fmt;
-use log::Level;
 
 /// We keep all the content here
 #[derive(Debug)]
@@ -104,9 +104,14 @@ where
         match self {
             Ok(r) => Some(r),
             Err(ref e) => {
-                log!(lvl, "{}. Caused by: \n\t{}", message.into(), unwind_error(e));
+                log!(
+                    lvl,
+                    "{}. Caused by: \n\t{}",
+                    message.into(),
+                    unwind_error(e)
+                );
                 None
-            },
+            }
         }
     }
 }

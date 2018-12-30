@@ -1,7 +1,7 @@
-extern crate ignite_rust;
-extern crate rand;
-extern crate log;
 extern crate env_logger;
+extern crate ignite_rust;
+extern crate log;
+extern crate rand;
 
 use ignite_rust::*;
 use rand::distributions::Alphanumeric;

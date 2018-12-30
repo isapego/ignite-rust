@@ -1,12 +1,12 @@
+use log::Level;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
-use log::Level;
 
 use ignite_configuration::IgniteConfiguration;
-use ignite_error::{IgniteResult, HandleResult};
+use ignite_error::{HandleResult, IgniteResult};
 use net::end_point::ResolvedEndPoint;
 use net::utils;
 
@@ -39,9 +39,13 @@ impl DataRouter {
             addr
         ))?;
 
-        stream.set_nodelay(true).log_on_error(Level::Warn, format!(
-            "Failed to set connection to no-delay mode for host {}", addr
-        ));
+        stream.set_nodelay(true).log_on_error(
+            Level::Warn,
+            format!(
+                "Failed to set connection to no-delay mode for host {}",
+                addr
+            ),
+        );
 
         Ok(stream)
     }
@@ -54,18 +58,16 @@ impl DataRouter {
 
         let resolved: Vec<ResolvedEndPoint> = end_points
             .iter()
-            .filter_map(|x|
-                x.resolve().log_on_error(Level::Warn, format!(
-                    "Can not resolve host {}", x.host()
-                ))
-            )
+            .filter_map(|x| {
+                x.resolve()
+                    .log_on_error(Level::Warn, format!("Can not resolve host {}", x.host()))
+            })
             .collect();
 
         for end_point in resolved {
             for addr in end_point {
-                let res = Self::try_connect(&addr).log_on_error(Level::Warn, format!(
-                    "Can not connect to the host {}", addr
-                ));
+                let res = Self::try_connect(&addr)
+                    .log_on_error(Level::Warn, format!("Can not connect to the host {}", addr));
 
                 let stream = match res {
                     Some(s) => s,
