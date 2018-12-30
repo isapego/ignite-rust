@@ -4,6 +4,8 @@ use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
 use ignite_error::{IgniteResult, HandleResult};
 
+pub const DEFAULT_PORT : u16 = 10800;
+
 /// Endpoint, pointing to a single host with a possible range of TCP ports.
 #[derive(Debug)]
 pub struct EndPoint {
@@ -43,7 +45,7 @@ impl EndPoint {
 
         let range = match iter.next() {
             Some(r) => r,
-            None => return Ok(EndPoint::new(host, 0, 0)),
+            None => return Ok(EndPoint::new(host, DEFAULT_PORT, 0)),
         };
 
         if iter.next().is_some() {
@@ -89,7 +91,8 @@ impl EndPoint {
 
     /// Resolve host IPs
     pub fn resolve(&self) -> IgniteResult<ResolvedEndPoint> {
-        let iter = self.host.as_str().to_socket_addrs().rewrap_on_error(
+        let addr_tuple = (self.host.as_str(), self.port_begin);
+        let iter = addr_tuple.to_socket_addrs().rewrap_on_error(
             format!("Failed to resolve host address: {}", self.host))?;
 
         let ips = iter.map(|addr| addr.ip()).collect();
