@@ -2,7 +2,7 @@ use std::convert::Into;
 use std::iter::{IntoIterator, Iterator};
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
-use ignite_error::{IgniteError, IgniteResult};
+use ignite_error::{IgniteResult, HandleResult};
 
 /// Endpoint, pointing to a single host with a possible range of TCP ports.
 #[derive(Debug)]
@@ -57,15 +57,8 @@ impl EndPoint {
             None => return Err("Parsing error: Port can not be an empty string".into()),
         };
 
-        let port_begin = match port_begin_s.parse::<u16>() {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(IgniteError::new_with_source(
-                    "Parsing error: can not parse port",
-                    Box::new(e),
-                ));
-            }
-        };
+        let port_begin = port_begin_s.parse::<u16>().rewrap_on_error(
+            "Parsing error: can not parse port")?;
 
         if port_begin == 0 {
             return Err("Parsing error: TCP port can not be zero".into());
@@ -76,15 +69,8 @@ impl EndPoint {
             None => return Ok(EndPoint::new(host, port_begin, 0)),
         };
 
-        let port_end = match port_end_s.parse::<u16>() {
-            Ok(p) => p,
-            Err(e) => {
-                return Err(IgniteError::new_with_source(
-                    "Parsing error: can not parse port",
-                    Box::new(e),
-                ));
-            }
-        };
+        let port_end = port_end_s.parse::<u16>().rewrap_on_error(
+                    "Parsing error: can not parse port range")?;
 
         if port_begin > port_end {
             return Err(
@@ -103,15 +89,8 @@ impl EndPoint {
 
     /// Resolve host IPs
     pub fn resolve(&self) -> IgniteResult<ResolvedEndPoint> {
-        let iter = match self.host.as_str().to_socket_addrs() {
-            Ok(it) => it,
-            Err(err) => {
-                return Err(IgniteError::new_with_source(
-                    format!("Failed to resolve host address: {}", self.host),
-                    Box::new(err),
-                ));
-            }
-        };
+        let iter = self.host.as_str().to_socket_addrs().rewrap_on_error(
+            format!("Failed to resolve host address: {}", self.host))?;
 
         let ips = iter.map(|addr| addr.ip()).collect();
         Ok(ResolvedEndPoint {
