@@ -1,6 +1,7 @@
 use std::convert::{From, Into};
 use std::error::Error;
 use std::fmt;
+use log::Level;
 
 /// We keep all the content here
 #[derive(Debug)]
@@ -53,6 +54,14 @@ impl Error for IgniteError {
     }
 }
 
+/// Converts error to a string chaining all causes in a column
+pub fn unwind_error(err: &dyn Error) -> String {
+    match err.source() {
+        None => format!("{}", err),
+        Some(e) => format!("{}. Caused by: \n\t{}", err, unwind_error(e)),
+    }
+}
+
 impl fmt::Display for IgniteError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.err.message)
@@ -71,22 +80,33 @@ where
 pub type IgniteResult<T> = Result<T, IgniteError>;
 
 /// Trait that intended to be implemented for Result
-/// types, enabling automatical wrapping of errors into
-/// IgniteResult.
+/// types, enabling automatical handling of errors.
 ///
-/// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
-pub trait WrapOnError<R> {
-    fn wrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
+/// For internal use only.
+pub trait HandleResult<R> {
+    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
+    fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R>;
 }
 
-impl<R, E> WrapOnError<R> for Result<R, E>
+impl<R, E> HandleResult<R> for Result<R, E>
 where
     E: Error + 'static,
 {
-    fn wrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
+    /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
+    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
         match self {
             Ok(r) => Ok(r),
             Err(e) => Err(IgniteError::new_with_source(message, Box::new(e))),
+        }
+    }
+
+    fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R> {
+        match self {
+            Ok(r) => Some(r),
+            Err(ref e) => {
+                log!(lvl, "{}. Caused by: \n\t{}", message.into(), unwind_error(e));
+                None
+            },
         }
     }
 }

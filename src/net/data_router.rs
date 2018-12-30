@@ -3,9 +3,10 @@ use rand::thread_rng;
 use std::collections::HashMap;
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
+use log::Level;
 
 use ignite_configuration::IgniteConfiguration;
-use ignite_error::{IgniteResult, WrapOnError};
+use ignite_error::{IgniteResult, HandleResult};
 use net::end_point::ResolvedEndPoint;
 use net::utils;
 
@@ -31,20 +32,16 @@ impl DataRouter {
 
     fn try_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
         let stream = TcpStream::connect(addr)
-            .wrap_on_error(format!("Failed to connect to remote host {}", addr))?;
+            .rewrap_on_error(format!("Failed to connect to remote host {}", addr))?;
 
-        stream.set_nonblocking(true).wrap_on_error(format!(
+        stream.set_nonblocking(true).rewrap_on_error(format!(
             "Failed to set connection to non-bloaking mode for host {}",
             addr
         ))?;
 
-        stream.set_nodelay(true).unwrap_or_else(|e| {
-            warn!(
-                "Failed to set connection to no-delay mode for host {}.
-                   The cause is {}",
-                addr, e
-            );
-        });
+        stream.set_nodelay(true).log_on_error(Level::Warn, format!(
+            "Failed to set connection to no-delay mode for host {}", addr
+        ));
 
         Ok(stream)
     }
@@ -57,24 +54,25 @@ impl DataRouter {
 
         let resolved: Vec<ResolvedEndPoint> = end_points
             .iter()
-            .filter_map(|x| match x.resolve() {
-                Ok(r) => Some(r),
-                Err(e) => {
-                    warn!("Can not resolve host {}. The cause is {}", x.host(), e);
-                    None
-                }
-            })
+            .filter_map(|x|
+                x.resolve().log_on_error(Level::Warn, format!(
+                    "Can not resolve host {}", x.host()
+                ))
+            )
             .collect();
 
         for end_point in resolved {
             for addr in end_point {
-                let stream = match Self::try_connect(&addr) {
-                    Ok(s) => s,
-                    Err(e) => {
-                        warn!("Can not connect to the host {}. The cause is {}", addr, e);
-                        continue;
-                    }
+                let res = Self::try_connect(&addr).log_on_error(Level::Warn, format!(
+                    "Can not connect to the host {}", addr
+                ));
+
+                let stream = match res {
+                    Some(s) => s,
+                    None => continue,
                 };
+
+                // TODO: Implement handshake here
 
                 self.conns.insert(addr, stream);
 
