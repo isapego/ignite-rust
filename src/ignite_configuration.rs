@@ -9,7 +9,7 @@ impl IgniteConfiguration {
     /// Create new configuration with default parameters.
     pub fn new() -> IgniteConfiguration {
         IgniteConfiguration {
-            end_points: String::new(),
+            end_points: "127.0.0.1".into(),
         }
     }
 
