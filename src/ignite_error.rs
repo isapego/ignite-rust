@@ -86,6 +86,10 @@ pub type IgniteResult<T> = Result<T, IgniteError>;
 pub trait HandleResult<R> {
     fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
     fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R>;
+    fn log_e_on_error<S: Into<String>>(self, message: S) -> Option<R>;
+    fn log_w_on_error<S: Into<String>>(self, message: S) -> Option<R>;
+    fn log_i_on_error<S: Into<String>>(self, message: S) -> Option<R>;
+    fn log_d_on_error<S: Into<String>>(self, message: S) -> Option<R>;
 }
 
 impl<R, E> HandleResult<R> for Result<R, E>
@@ -113,6 +117,22 @@ where
                 None
             }
         }
+    }
+
+    fn log_e_on_error<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_on_error(Level::Error, message)
+    }
+
+    fn log_w_on_error<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_on_error(Level::Warn, message)
+    }
+
+    fn log_i_on_error<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_on_error(Level::Info, message)
+    }
+
+    fn log_d_on_error<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_on_error(Level::Debug, message)
     }
 }
 

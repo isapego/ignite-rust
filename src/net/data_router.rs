@@ -1,4 +1,3 @@
-use log::Level;
 use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::collections::HashMap;
@@ -39,13 +38,10 @@ impl DataRouter {
             addr
         ))?;
 
-        stream.set_nodelay(true).log_on_error(
-            Level::Warn,
-            format!(
-                "Failed to set connection to no-delay mode for host {}",
-                addr
-            ),
-        );
+        stream.set_nodelay(true).log_w_on_error(format!(
+            "Failed to set connection to no-delay mode for host {}",
+            addr
+        ));
 
         Ok(stream)
     }
@@ -60,14 +56,14 @@ impl DataRouter {
             .iter()
             .filter_map(|x| {
                 x.resolve()
-                    .log_on_error(Level::Warn, format!("Can not resolve host {}", x.host()))
+                    .log_w_on_error(format!("Can not resolve host {}", x.host()))
             })
             .collect();
 
         for end_point in resolved {
             for addr in end_point {
                 let res = Self::try_connect(&addr)
-                    .log_on_error(Level::Warn, format!("Can not connect to the host {}", addr));
+                    .log_w_on_error(format!("Can not connect to the host {}", addr));
 
                 let stream = match res {
                     Some(s) => s,
