@@ -1,6 +1,5 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::collections::HashMap;
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
 
@@ -17,7 +16,7 @@ use net::utils;
 #[derive(Debug)]
 pub struct DataRouter {
     cfg: Rc<IgniteConfiguration>,
-    conns: HashMap<SocketAddr, TcpStream>,
+    conn: Option<TcpStream>,
 }
 
 impl DataRouter {
@@ -25,7 +24,7 @@ impl DataRouter {
     pub fn new(cfg: Rc<IgniteConfiguration>) -> DataRouter {
         DataRouter {
             cfg: cfg,
-            conns: HashMap::new(),
+            conn: None,
         }
     }
 
@@ -72,7 +71,7 @@ impl DataRouter {
 
                 // TODO: Implement handshake here
 
-                self.conns.insert(addr, stream);
+                self.conn = Some(stream);
 
                 return Ok(());
             }
