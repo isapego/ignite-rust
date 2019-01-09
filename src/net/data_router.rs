@@ -7,6 +7,7 @@ use ignite_configuration::IgniteConfiguration;
 use ignite_error::{HandleResult, IgniteResult};
 use net::end_point::ResolvedEndPoint;
 use net::utils;
+use protocol_version::ProtocolVersion;
 
 /// Component which is responsible for establishing and
 /// maintaining reliable connection link to the Ignite cluster.
@@ -43,6 +44,16 @@ impl DataRouter {
         ));
 
         Ok(stream)
+    }
+
+    // Try perform handshake with the specified version
+    fn handshake(&mut self, ver: &ProtocolVersion) -> IgniteResult<()> {
+        assert!(
+            self.conn.is_some(),
+            "Should never be called without opening connection"
+        );
+
+        Ok(())
     }
 
     /// Try establish initial connection with Ignite cluster
