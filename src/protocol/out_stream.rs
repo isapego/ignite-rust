@@ -6,7 +6,7 @@ use std::thread;
 
 /// Trait for a type that can be written to a stream
 pub trait Writable {
-    fn write(&self, out: &mut OutStream);
+    fn write(&self, out: &OutStream);
 }
 
 /// Default reserved memory capacity
@@ -89,8 +89,13 @@ impl OutStream {
         }
     }
 
+    /// Get current position in stream
+    pub fn position(&self) -> usize {
+        self.pos
+    }
+
     /// Write i8 value to a stream
-    pub fn write_i8(&mut self, value: i8) {
+    pub fn write_i8(&self, value: i8) {
         self.ensure_capacity(1);
 
         // It is safe as safety check was performed before
@@ -100,7 +105,7 @@ impl OutStream {
     }
 
     /// Write i16 value to a stream
-    pub fn write_i16(&mut self, value: i16) {
+    pub fn write_i16(&self, value: i16) {
         self.ensure_capacity(2);
 
         // It is safe as safety check was performed before
@@ -110,7 +115,7 @@ impl OutStream {
     }
 
     /// Write i32 value to a stream
-    pub fn write_i32(&mut self, value: i32) {
+    pub fn write_i32(&self, value: i32) {
         self.ensure_capacity(4);
 
         // It is safe as safety check was performed before
@@ -120,7 +125,7 @@ impl OutStream {
     }
 
     /// Write i64 value to a stream
-    pub fn write_i64(&mut self, value: i64) {
+    pub fn write_i64(&self, value: i64) {
         self.ensure_capacity(8);
 
         // It is safe as safety check was performed before
@@ -130,14 +135,14 @@ impl OutStream {
     }
 
     /// Write string value to a stream
-    pub fn write_str<'a, S: Into<&'a str>>(&mut self, value: S) {
+    pub fn write_str<'a, S: Into<&'a str>>(&self, value: S) {
         let value0 = value.into().as_bytes();
 
         self.write_u8_array(value0);
     }
 
     /// Write bytes to a stream
-    pub fn write_u8_array<'a, A: Into<&'a [u8]>>(&mut self, value: A) {
+    pub fn write_u8_array<'a, A: Into<&'a [u8]>>(&self, value: A) {
         let value0 = value.into();
 
         self.ensure_capacity(4 + value0.len());
@@ -150,46 +155,46 @@ impl OutStream {
     }
 
     /// Reserve a space in a stream for a i32 value.
-    pub fn reserve_i32<'a>(&'a mut self) -> Reserved<'a, i32> {
+    pub fn reserve_i32<'a, 'b: 'a>(&'b self) -> Reserved<'a, i32> {
         self.ensure_capacity(4);
 
-        let reserved = Reserved::<'a, i32>::new(self);
+        let reserved = Reserved::<i32>::new(self);
 
-        self.pos += 4;
+        self.add_pos(4);
 
         reserved
     }
 
     /// Write i8 value without capacity checks
-    unsafe fn unsafe_write_i8(&mut self, value: i8) {
+    unsafe fn unsafe_write_i8(&self, value: i8) {
         let dst = self.mut_ptr_to_free_space();
 
         *dst = (value & 0xFF) as u8;
 
-        self.pos += 1;
+        self.add_pos(1);
     }
 
     /// Write i16 value without capacity checks
-    unsafe fn unsafe_write_i16(&mut self, value: i16) {
+    unsafe fn unsafe_write_i16(&self, value: i16) {
         let dst = self.mut_ptr_to_free_space();
 
         *dst = (value & 0xFF) as u8;
         *dst.add(1) = (value >> 8 & 0xFF) as u8;
 
-        self.pos += 2;
+        self.add_pos(2);
     }
 
     /// Write i32 value without capacity checks
-    unsafe fn unsafe_write_i32(&mut self, value: i32) {
+    unsafe fn unsafe_write_i32(&self, value: i32) {
         let pos = self.pos;
 
         self.unsafe_write_i32_to_pos(pos, value);
 
-        self.pos += 4;
+        self.add_pos(4);
     }
 
     /// Write i32 value to a specific position without capacity checks
-    unsafe fn unsafe_write_i32_to_pos(&mut self, pos: usize, value: i32) {
+    unsafe fn unsafe_write_i32_to_pos(&self, pos: usize, value: i32) {
         let dst = self.mut_ptr_to_position(pos);
 
         *dst = (value & 0xFF) as u8;
@@ -199,7 +204,7 @@ impl OutStream {
     }
 
     /// Write i64 value without capacity checks
-    unsafe fn unsafe_write_i64(&mut self, value: i64) {
+    unsafe fn unsafe_write_i64(&self, value: i64) {
         let dst = self.mut_ptr_to_free_space();
 
         *dst = (value & 0xFF) as u8;
@@ -211,17 +216,17 @@ impl OutStream {
         *dst.add(6) = (value >> 48 & 0xFF) as u8;
         *dst.add(7) = (value >> 56 & 0xFF) as u8;
 
-        self.pos += 8;
+        self.add_pos(8);
     }
 
     /// Write bytes without capacity checks
-    unsafe fn unsafe_write_bytes(&mut self, bytes: &[u8]) {
+    unsafe fn unsafe_write_bytes(&self, bytes: &[u8]) {
         let dst = self.mut_ptr_to_free_space();
         let src = bytes.as_ptr();
 
         ptr::copy(src, dst, bytes.len());
 
-        self.pos += bytes.len();
+        self.add_pos(bytes.len());
     }
 
     /// Get mutable pointer to a free space
@@ -252,6 +257,17 @@ impl OutStream {
     unsafe fn layout_for_len(len: usize) -> alloc::Layout {
         alloc::Layout::from_size_align_unchecked(len, mem::align_of::<u8>())
     }
+
+    /// Increase position
+    /// Unchecked
+    #[inline(always)]
+    fn add_pos(&self, add: usize) {
+        unsafe {
+            let me = self as *const Self as *mut Self;
+
+            (*me).pos += add;
+        }
+    }
 }
 
 /// Implementing drop for OutStream to deal with memory deallocation
@@ -268,10 +284,10 @@ impl Drop for OutStream {
 }
 
 pub struct Reserved<'a, T: 'static> {
-    stream: *mut OutStream,
+    stream: &'a OutStream,
     pos: usize,
     set: bool,
-    phantom: PhantomData<&'a T>,
+    phantom: PhantomData<T>,
 }
 
 impl<'a, T> Drop for Reserved<'a, T> {
@@ -287,23 +303,22 @@ impl<'a, T> Drop for Reserved<'a, T> {
 
 impl<'a> Reserved<'a, i32> {
     /// Make new instance
-    fn new(stream: *mut OutStream) -> Self {
-        unsafe {
-            Self {
-                stream: stream,
-                pos: (*stream).pos,
-                set: false,
-                phantom: PhantomData,
-            }
+    fn new<'b>(stream: &'b OutStream) -> Self
+    where
+        'b: 'a,
+    {
+        Self {
+            stream: stream,
+            pos: (*stream).pos,
+            set: false,
+            phantom: PhantomData,
         }
     }
 
     /// Set value. Consumes an instance.
     pub fn set(mut self, value: i32) {
         unsafe {
-            let sref = &mut *self.stream;
-
-            sref.unsafe_write_i32_to_pos(self.pos, value);
+            self.stream.unsafe_write_i32_to_pos(self.pos, value);
         }
 
         self.set = true;
@@ -312,7 +327,7 @@ impl<'a> Reserved<'a, i32> {
 
 #[test]
 fn test_write_i8() {
-    let mut out = OutStream::new();
+    let out = OutStream::new();
 
     out.write_i8(0xF4u8 as i8);
 
@@ -324,7 +339,7 @@ fn test_write_i8() {
 
 #[test]
 fn test_write_i16() {
-    let mut out = OutStream::new();
+    let out = OutStream::new();
 
     out.write_i16(0x4321);
 
@@ -337,7 +352,7 @@ fn test_write_i16() {
 
 #[test]
 fn test_write_i32() {
-    let mut out = OutStream::new();
+    let out = OutStream::new();
 
     out.write_i32(0x11223344);
 
@@ -352,7 +367,7 @@ fn test_write_i32() {
 
 #[test]
 fn test_write_i64() {
-    let mut out = OutStream::new();
+    let out = OutStream::new();
 
     out.write_i64(0xEFCDAB8967452301u64 as i64);
 
@@ -371,7 +386,7 @@ fn test_write_i64() {
 
 #[test]
 fn test_write_str() {
-    let mut out = OutStream::new();
+    let out = OutStream::new();
 
     let value = "Hello World!";
 
@@ -401,27 +416,48 @@ fn test_write_str() {
 }
 
 #[test]
-#[should_panic]
-fn test_reserve_panic() {
-    // let reserved;
+fn test_reserve() {
+    let out = OutStream::new();
 
     {
-        let mut out = OutStream::new();
+        let reserved = out.reserve_i32();
 
         out.write_i32(0x11223344);
 
-        {
-            let _reserved = out.reserve_i32();
-        }
-
-        let mem = out.into_memory();
-
-        assert_eq!(mem.len(), 4);
-        assert_eq!(mem[0], 0x44);
-        assert_eq!(mem[1], 0x33);
-        assert_eq!(mem[2], 0x22);
-        assert_eq!(mem[3], 0x11);
+        reserved.set(0x55667788);
     }
 
-    // reserved.set(10);
+    let mem = out.into_memory();
+
+    assert_eq!(mem.len(), 8);
+
+    assert_eq!(mem[0], 0x88);
+    assert_eq!(mem[1], 0x77);
+    assert_eq!(mem[2], 0x66);
+    assert_eq!(mem[3], 0x55);
+
+    assert_eq!(mem[4], 0x44);
+    assert_eq!(mem[5], 0x33);
+    assert_eq!(mem[6], 0x22);
+    assert_eq!(mem[7], 0x11);
+}
+
+#[test]
+#[should_panic]
+fn test_reserve_panic() {
+    let out = OutStream::new();
+
+    out.write_i32(0x11223344);
+
+    {
+        let _reserved = out.reserve_i32();
+    }
+
+    let mem = out.into_memory();
+
+    assert_eq!(mem.len(), 4);
+    assert_eq!(mem[0], 0x44);
+    assert_eq!(mem[1], 0x33);
+    assert_eq!(mem[2], 0x22);
+    assert_eq!(mem[3], 0x11);
 }

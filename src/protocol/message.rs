@@ -28,8 +28,8 @@ pub struct HandshakeReq<'a> {
 }
 
 impl<'a> Writable for HandshakeReq<'a> {
-    fn write(&self, out: &mut OutStream) {
-        // let len = out.reserve_i32();
+    fn write(&self, out: &OutStream) {
+        let len = out.reserve_i32();
 
         out.write_i8(RequestType::Handshake as i8);
 
@@ -40,6 +40,6 @@ impl<'a> Writable for HandshakeReq<'a> {
         out.write_str(self.user);
         out.write_str(self.pass);
 
-        // len.set((out.filled_memory().len() - 4) as i32);
+        len.set((out.position() - 4) as i32);
     }
 }

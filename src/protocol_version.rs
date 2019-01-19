@@ -7,7 +7,7 @@ pub struct ProtocolVersion {
 }
 
 impl Writable for ProtocolVersion {
-    fn write(&self, out: &mut OutStream) {
+    fn write(&self, out: &OutStream) {
         out.write_i16(self.major);
         out.write_i16(self.minor);
         out.write_i16(self.maintaince);
