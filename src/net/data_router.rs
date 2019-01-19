@@ -3,11 +3,11 @@ use rand::thread_rng;
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
 
-use ignite_configuration::IgniteConfiguration;
-use ignite_error::{HandleResult, IgniteResult};
-use net::end_point::ResolvedEndPoint;
-use net::utils;
-use protocol_version::ProtocolVersion;
+use crate::ignite_configuration::IgniteConfiguration;
+use crate::ignite_error::{HandleResult, IgniteResult};
+use crate::net::end_point::ResolvedEndPoint;
+use crate::net::utils;
+use crate::protocol_version::ProtocolVersion;
 
 /// Component which is responsible for establishing and
 /// maintaining reliable connection link to the Ignite cluster.
@@ -47,7 +47,7 @@ impl DataRouter {
     }
 
     // Try perform handshake with the specified version
-    fn handshake(&mut self, ver: &ProtocolVersion) -> IgniteResult<()> {
+    fn handshake(&mut self, _ver: &ProtocolVersion) -> IgniteResult<()> {
         assert!(
             self.conn.is_some(),
             "Should never be called without opening connection"

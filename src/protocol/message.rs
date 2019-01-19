@@ -1,5 +1,5 @@
-use protocol::{OutStream, Write};
-use protocol_version::ProtocolVersion;
+use crate::protocol::{OutStream, Write};
+use crate::protocol_version::ProtocolVersion;
 
 enum ClientType {
     Thin = 2,

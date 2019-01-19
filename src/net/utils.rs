@@ -1,5 +1,5 @@
-use ignite_error::IgniteResult;
-use net::end_point::EndPoint;
+use crate::ignite_error::IgniteResult;
+use crate::net::end_point::EndPoint;
 
 /// Parse endpoints string.
 /// The format is `"<host>[:<port>[..<port>]][,...]"`.

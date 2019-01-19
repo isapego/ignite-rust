@@ -1,4 +1,4 @@
-use protocol::{OutStream, Write};
+use crate::protocol::{OutStream, Write};
 
 pub struct ProtocolVersion {
     major: i16,

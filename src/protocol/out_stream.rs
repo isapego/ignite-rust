@@ -155,7 +155,7 @@ impl OutStream {
     }
 
     /// Reserve a space in a stream for a i32 value.
-    pub fn reserve_i32<'a, 'b: 'a>(&'b self) -> ReservedI32<'a> {
+    pub fn reserve_i32(&self) -> ReservedI32 {
         self.ensure_capacity(4);
 
         let reserved = ReservedI32::new(self);
@@ -283,12 +283,9 @@ impl Drop for OutStream {
     }
 }
 
-pub struct ReservedI32<'a> {
-    stream: &'a OutStream,
-    pos: usize,
-}
+struct ShouldNotDrop;
 
-impl<'a> Drop for ReservedI32<'a> {
+impl Drop for ShouldNotDrop {
     fn drop(&mut self) {
         // Panic results in unwind and subsequent call to drop(), so we need to
         // ensure here we are not currently panicking, to avoid aborting of the
@@ -298,20 +295,24 @@ impl<'a> Drop for ReservedI32<'a> {
     }
 }
 
+pub struct ReservedI32<'a> {
+    stream: &'a OutStream,
+    pos: usize,
+    _marker: ShouldNotDrop,
+}
+
 impl<'a> ReservedI32<'a> {
     /// Make new instance
-    fn new<'b>(stream: &'b OutStream) -> Self
-    where
-        'b: 'a,
-    {
+    fn new<'b: 'a>(stream: &'b OutStream) -> Self {
         Self {
             stream: stream,
-            pos: (*stream).pos,
+            pos: stream.pos,
+            _marker: ShouldNotDrop,
         }
     }
 
     /// Set value. Consumes an instance.
-    pub fn set(mut self, value: i32) {
+    pub fn set(self, value: i32) {
         unsafe {
             self.stream.unsafe_write_i32_to_pos(self.pos, value);
 

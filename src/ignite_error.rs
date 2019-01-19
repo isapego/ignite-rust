@@ -138,7 +138,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use ignite_error::IgniteError;
+    use crate::ignite_error::IgniteError;
     use std::error::Error;
 
     static TEST_MSG: &str = "Test error";
