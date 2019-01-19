@@ -58,13 +58,11 @@ impl OutStream {
 
         unsafe {
             let new_mem = if self.len == 0 {
-                let layout =
-                    alloc::Layout::from_size_align_unchecked(new_len, mem::align_of::<u8>());
+                let layout = Self::layout_for_len(new_len);
 
                 alloc::alloc(layout)
             } else {
-                let layout =
-                    alloc::Layout::from_size_align_unchecked(self.len, mem::align_of::<u8>());
+                let layout = Self::layout_for_len(self.len);
 
                 alloc::realloc(self.mut_ptr(), layout, new_len)
             };
@@ -82,7 +80,13 @@ impl OutStream {
 
     /// Get filled memory
     pub fn into_memory(self) -> Box<[u8]> {
-        unsafe { Vec::from_raw_parts(self.mem.as_ptr(), self.pos, self.len).into_boxed_slice() }
+        unsafe {
+            let res = Vec::from_raw_parts(self.mem.as_ptr(), self.pos, self.len).into_boxed_slice();
+
+            mem::forget(self);
+
+            res
+        }
     }
 
     /// Write i8 value to a stream
@@ -156,28 +160,6 @@ impl OutStream {
         reserved
     }
 
-    /// Get mutable pointer to a free space
-    /// Unchecked
-    #[inline(always)]
-    unsafe fn mut_ptr_to_free_space(&self) -> *mut u8 {
-        let pos = self.pos;
-        self.mut_ptr_to_position(pos)
-    }
-
-    /// Get mutable pointer to a free space
-    /// Unchecked
-    #[inline(always)]
-    unsafe fn mut_ptr_to_position(&self, pos: usize) -> *mut u8 {
-        self.mut_ptr().add(pos)
-    }
-
-    /// Get mutable pointer
-    /// Unchecked
-    #[inline(always)]
-    unsafe fn mut_ptr(&self) -> *mut u8 {
-        self.mem.as_ref() as *const u8 as *mut u8
-    }
-
     /// Write i8 value without capacity checks
     unsafe fn unsafe_write_i8(&mut self, value: i8) {
         let dst = self.mut_ptr_to_free_space();
@@ -240,6 +222,48 @@ impl OutStream {
         ptr::copy(src, dst, bytes.len());
 
         self.pos += bytes.len();
+    }
+
+    /// Get mutable pointer to a free space
+    /// Unchecked
+    #[inline(always)]
+    unsafe fn mut_ptr_to_free_space(&self) -> *mut u8 {
+        let pos = self.pos;
+        self.mut_ptr_to_position(pos)
+    }
+
+    /// Get mutable pointer to a free space
+    /// Unchecked
+    #[inline(always)]
+    unsafe fn mut_ptr_to_position(&self, pos: usize) -> *mut u8 {
+        self.mut_ptr().add(pos)
+    }
+
+    /// Get mutable pointer
+    /// Unchecked
+    #[inline(always)]
+    unsafe fn mut_ptr(&self) -> *mut u8 {
+        self.mem.as_ref() as *const u8 as *mut u8
+    }
+
+    /// Get layout for the memory of the specified length
+    /// Unchecked
+    #[inline(always)]
+    unsafe fn layout_for_len(len: usize) -> alloc::Layout {
+        alloc::Layout::from_size_align_unchecked(len, mem::align_of::<u8>())
+    }
+}
+
+/// Implementing drop for OutStream to deal with memory deallocation
+impl Drop for OutStream {
+    fn drop(&mut self) {
+        if self.len != 0 {
+            unsafe {
+                let layout = OutStream::layout_for_len(self.len);
+
+                alloc::dealloc(self.mut_ptr(), layout);
+            }
+        }
     }
 }
 
