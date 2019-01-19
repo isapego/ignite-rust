@@ -1,5 +1,4 @@
 use std::alloc;
-use std::marker::PhantomData;
 use std::mem;
 use std::ptr;
 use std::thread;
@@ -165,6 +164,18 @@ impl OutStream {
         reserved
     }
 
+    /// Reserve a space in a stream for a i32 value which will be lately set to
+    /// a length of the block of data.
+    pub fn reserve_len(&self) -> ReservedLen {
+        self.ensure_capacity(4);
+
+        let reserved = ReservedLen::new(self);
+
+        self.add_pos(4);
+
+        reserved
+    }
+
     /// Write i8 value without capacity checks
     unsafe fn unsafe_write_i8(&self, value: i8) {
         let dst = self.mut_ptr_to_free_space();
@@ -321,6 +332,25 @@ impl<'a> ReservedI32<'a> {
     }
 }
 
+pub struct ReservedLen<'a>{
+    val: ReservedI32<'a>,
+}
+
+impl<'a> ReservedLen<'a> {
+    /// Make new instance
+    fn new<'b: 'a>(stream: &'b OutStream) -> Self {
+        Self {
+            val: ReservedI32::new(stream),
+        }
+    }
+
+    /// Set value. Consumes an instance.
+    pub fn set(self) {
+        let len = self.val.stream.pos - self.val.pos - 4;
+        self.val.set(len as i32);
+    }
+}
+
 #[test]
 fn test_write_i8() {
     let out = OutStream::new();
@@ -412,16 +442,14 @@ fn test_write_str() {
 }
 
 #[test]
-fn test_reserve() {
+fn test_reserve_i32() {
     let out = OutStream::new();
 
-    {
-        let reserved = out.reserve_i32();
+    let reserved = out.reserve_i32();
 
-        out.write_i32(0x11223344);
+    out.write_i32(0x11223344);
 
-        reserved.set(0x55667788);
-    }
+    reserved.set(0x55667788);
 
     let mem = out.into_memory();
 
@@ -440,7 +468,7 @@ fn test_reserve() {
 
 #[test]
 #[should_panic]
-fn test_reserve_panic() {
+fn test_reserve_i32_panic() {
     let out = OutStream::new();
 
     out.write_i32(0x11223344);
@@ -456,4 +484,30 @@ fn test_reserve_panic() {
     assert_eq!(mem[1], 0x33);
     assert_eq!(mem[2], 0x22);
     assert_eq!(mem[3], 0x11);
+}
+
+#[test]
+fn test_reserve_len() {
+    let out = OutStream::new();
+
+    let reserved = out.reserve_len();
+
+    out.write_i32(0x11223344);
+    out.write_str("Lorem ipsum");
+
+    reserved.set();
+
+    let mem = out.into_memory();
+
+    assert_eq!(mem.len(), 4 + 4 + 4 + 11);
+
+    assert_eq!(mem[0], 4 + 4 + 11);
+    assert_eq!(mem[1], 0);
+    assert_eq!(mem[2], 0);
+    assert_eq!(mem[3], 0);
+
+    assert_eq!(mem[4], 0x44);
+    assert_eq!(mem[5], 0x33);
+    assert_eq!(mem[6], 0x22);
+    assert_eq!(mem[7], 0x11);
 }
