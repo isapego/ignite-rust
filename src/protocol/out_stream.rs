@@ -1,3 +1,4 @@
+use std::alloc;
 use std::marker::PhantomData;
 use std::mem;
 use std::ptr;
@@ -11,9 +12,13 @@ pub trait Writable {
 /// Default reserved memory capacity
 const DEFAULT_CAPACITY: usize = 1024;
 
+/// Max capacity of the underlying memory
+const MAX_CAPACITY: usize = ::std::i32::MAX as usize;
+
 /// Writing stream abstraction
 pub struct OutStream {
-    mem: Box<[u8]>,
+    mem: ptr::NonNull<u8>,
+    len: usize,
     pos: usize,
 }
 
@@ -21,39 +26,63 @@ impl OutStream {
     /// Make new instance
     pub fn new() -> Self {
         OutStream {
-            mem: vec![0u8; DEFAULT_CAPACITY].into_boxed_slice(),
+            mem: ptr::NonNull::dangling(),
+            len: 0,
             pos: 0,
         }
     }
 
     /// Ensure that capacity is enough to fit the required number of bytes
-    fn ensure_capacity(&mut self, capacity: usize) {
-        if self.pos + capacity <= self.mem.len() {
+    fn ensure_capacity(&self, capacity: usize) {
+        if self.pos + capacity <= self.len {
             return;
         }
 
-        let mut new_size = self.mem.len() * 2;
+        assert!(capacity <= MAX_CAPACITY, "Capacity overflow");
 
-        while new_size < capacity {
-            new_size *= 2;
+        let mut new_len = if self.len < DEFAULT_CAPACITY {
+            DEFAULT_CAPACITY
+        } else {
+            self.len
+        };
+
+        while new_len < capacity {
+            new_len *= 2;
+
+            if new_len >= MAX_CAPACITY {
+                new_len = MAX_CAPACITY;
+
+                break;
+            }
         }
 
-        let mut local: Box<[u8]> = Box::new([0u8; 0]);
-        mem::swap(&mut local, &mut self.mem);
+        unsafe {
+            let new_mem = if self.len == 0 {
+                let layout =
+                    alloc::Layout::from_size_align_unchecked(new_len, mem::align_of::<u8>());
 
-        let mut vec_mem = local.into_vec();
-        vec_mem.reserve(new_size);
+                alloc::alloc(layout)
+            } else {
+                let layout =
+                    alloc::Layout::from_size_align_unchecked(self.len, mem::align_of::<u8>());
 
-        self.mem = vec_mem.into_boxed_slice();
+                alloc::realloc(self.mut_ptr(), layout, new_len)
+            };
+
+            assert!(!new_mem.is_null(), "Out of memory");
+
+            let new_non_null = ptr::NonNull::new_unchecked(new_mem);
+
+            let me = self as *const Self as *mut Self;
+
+            (*me).mem = new_non_null;
+            (*me).len = new_len;
+        }
     }
 
     /// Get filled memory
     pub fn into_memory(self) -> Box<[u8]> {
-        // We can resize boxed slice safely only through the use of Vec
-        let mut vec = self.mem.into_vec();
-        vec.resize(self.pos, 0);
-
-        vec.into_boxed_slice()
+        unsafe { Vec::from_raw_parts(self.mem.as_ptr(), self.pos, self.len).into_boxed_slice() }
     }
 
     /// Write i8 value to a stream
@@ -130,7 +159,7 @@ impl OutStream {
     /// Get mutable pointer to a free space
     /// Unchecked
     #[inline(always)]
-    unsafe fn mut_ptr_to_free_space(&mut self) -> *mut u8 {
+    unsafe fn mut_ptr_to_free_space(&self) -> *mut u8 {
         let pos = self.pos;
         self.mut_ptr_to_position(pos)
     }
@@ -138,8 +167,15 @@ impl OutStream {
     /// Get mutable pointer to a free space
     /// Unchecked
     #[inline(always)]
-    unsafe fn mut_ptr_to_position(&mut self, pos: usize) -> *mut u8 {
-        self.mem.as_mut_ptr().add(pos)
+    unsafe fn mut_ptr_to_position(&self, pos: usize) -> *mut u8 {
+        self.mut_ptr().add(pos)
+    }
+
+    /// Get mutable pointer
+    /// Unchecked
+    #[inline(always)]
+    unsafe fn mut_ptr(&self) -> *mut u8 {
+        self.mem.as_ref() as *const u8 as *mut u8
     }
 
     /// Write i8 value without capacity checks
