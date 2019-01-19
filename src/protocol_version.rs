@@ -1,4 +1,4 @@
-use protocol::{OutStream, Writable};
+use protocol::{OutStream, Write};
 
 pub struct ProtocolVersion {
     major: i16,
@@ -6,7 +6,7 @@ pub struct ProtocolVersion {
     maintaince: i16,
 }
 
-impl Writable for ProtocolVersion {
+impl Write for ProtocolVersion {
     fn write(&self, out: &OutStream) {
         out.write_i16(self.major);
         out.write_i16(self.minor);

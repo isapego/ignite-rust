@@ -1,4 +1,4 @@
-use protocol::{OutStream, Writable};
+use protocol::{OutStream, Write};
 use protocol_version::ProtocolVersion;
 
 enum ClientType {
@@ -27,7 +27,7 @@ pub struct HandshakeReq<'a> {
     pass: &'a str,
 }
 
-impl<'a> Writable for HandshakeReq<'a> {
+impl<'a> Write for HandshakeReq<'a> {
     fn write(&self, out: &OutStream) {
         let len = out.reserve_i32();
 

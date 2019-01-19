@@ -5,7 +5,7 @@ use std::ptr;
 use std::thread;
 
 /// Trait for a type that can be written to a stream
-pub trait Writable {
+pub trait Write {
     fn write(&self, out: &OutStream);
 }
 
@@ -155,10 +155,10 @@ impl OutStream {
     }
 
     /// Reserve a space in a stream for a i32 value.
-    pub fn reserve_i32<'a, 'b: 'a>(&'b self) -> Reserved<'a, i32> {
+    pub fn reserve_i32<'a, 'b: 'a>(&'b self) -> ReservedI32<'a> {
         self.ensure_capacity(4);
 
-        let reserved = Reserved::<i32>::new(self);
+        let reserved = ReservedI32::new(self);
 
         self.add_pos(4);
 
@@ -169,7 +169,7 @@ impl OutStream {
     unsafe fn unsafe_write_i8(&self, value: i8) {
         let dst = self.mut_ptr_to_free_space();
 
-        *dst = (value & 0xFF) as u8;
+        *dst = value as u8 & 0xFFu8;
 
         self.add_pos(1);
     }
@@ -283,25 +283,22 @@ impl Drop for OutStream {
     }
 }
 
-pub struct Reserved<'a, T: 'static> {
+pub struct ReservedI32<'a> {
     stream: &'a OutStream,
     pos: usize,
-    set: bool,
-    phantom: PhantomData<T>,
 }
 
-impl<'a, T> Drop for Reserved<'a, T> {
+impl<'a> Drop for ReservedI32<'a> {
     fn drop(&mut self) {
         // Panic results in unwind and subsequent call to drop(), so we need to
         // ensure here we are not currently panicking, to avoid aborting of the
         // whole process.
-        if !thread::panicking() {
-            assert!(!thread::panicking() && self.set, "Fatal error: Reserved value was not set properly. Panicking to prevent undefined behaviour");
-        }
+        assert!(!thread::panicking(),
+            "Fatal error: Reserved value was not set properly. Panicking to prevent undefined behaviour");
     }
 }
 
-impl<'a> Reserved<'a, i32> {
+impl<'a> ReservedI32<'a> {
     /// Make new instance
     fn new<'b>(stream: &'b OutStream) -> Self
     where
@@ -310,8 +307,6 @@ impl<'a> Reserved<'a, i32> {
         Self {
             stream: stream,
             pos: (*stream).pos,
-            set: false,
-            phantom: PhantomData,
         }
     }
 
@@ -319,9 +314,9 @@ impl<'a> Reserved<'a, i32> {
     pub fn set(mut self, value: i32) {
         unsafe {
             self.stream.unsafe_write_i32_to_pos(self.pos, value);
-        }
 
-        self.set = true;
+            mem::forget(self);
+        }
     }
 }
 
