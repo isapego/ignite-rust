@@ -3,13 +3,17 @@ use std::convert::Into;
 #[derive(Debug)]
 pub struct IgniteConfiguration {
     end_points: String,
+    user: String,
+    pass: String,
 }
 
 impl IgniteConfiguration {
     /// Create new configuration with default parameters.
     pub fn new() -> IgniteConfiguration {
         IgniteConfiguration {
-            end_points: "127.0.0.1".into(),
+            end_points: String::from("127.0.0.1"),
+            user: String::new(),
+            pass: String::new(),
         }
     }
 
@@ -38,7 +42,17 @@ impl IgniteConfiguration {
     /// Get endpoints.
     /// See set_endpoints() for details on the format.
     pub fn get_endpoints(&self) -> &str {
-        self.end_points.as_str()
+        &self.end_points
+    }
+
+    /// Get username for authentication
+    pub fn get_user(&self) -> &str {
+        &self.user
+    }
+
+    /// Get password for authentication
+    pub fn get_password(&self) -> &str {
+        &self.pass
     }
 }
 

@@ -1,14 +1,18 @@
 use crate::protocol::{OutStream, Write};
 use crate::protocol_version::ProtocolVersion;
 
+/// Type of client. There is only one type of client
+/// we are interested in - Thin.
 enum ClientType {
     Thin = 2,
 }
 
+/// Type of request message
 enum RequestType {
     Handshake = 1,
 }
 
+/// Type of response message
 pub enum ResponseType {
     Handshake = 1,
 }
@@ -29,8 +33,6 @@ pub struct HandshakeReq<'a> {
 
 impl<'a> Write for HandshakeReq<'a> {
     fn write(&self, out: &OutStream) {
-        let len = out.reserve_len();
-
         out.write_i8(RequestType::Handshake as i8);
 
         self.ver.write(out);
@@ -39,7 +41,16 @@ impl<'a> Write for HandshakeReq<'a> {
 
         out.write_str(self.user);
         out.write_str(self.pass);
+    }
+}
 
-        len.set();
+impl<'a> HandshakeReq<'a> {
+    /// Make new instance
+    pub fn new(ver: ProtocolVersion, user: &'a str, pass: &'a str) -> Self {
+        HandshakeReq {
+            ver: ver,
+            user: user,
+            pass: pass,
+        }
     }
 }

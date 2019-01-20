@@ -8,6 +8,21 @@ pub trait Write {
     fn write(&self, out: &OutStream);
 }
 
+impl Write {
+    /// Pack any Write value into boxed slice
+    pub fn pack(val: &dyn Write) -> Box<[u8]> {
+        let stream = OutStream::new();
+
+        let len = stream.reserve_len();
+
+        val.write(&stream);
+
+        len.set();
+
+        stream.into_memory()
+    }
+}
+
 /// Default reserved memory capacity
 const DEFAULT_CAPACITY: usize = 1024;
 
@@ -332,7 +347,7 @@ impl<'a> ReservedI32<'a> {
     }
 }
 
-pub struct ReservedLen<'a>{
+pub struct ReservedLen<'a> {
     val: ReservedI32<'a>,
 }
 

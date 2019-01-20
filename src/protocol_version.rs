@@ -1,5 +1,6 @@
 use crate::protocol::{OutStream, Write};
 
+#[derive(Copy, Clone, Debug)]
 pub struct ProtocolVersion {
     major: i16,
     minor: i16,

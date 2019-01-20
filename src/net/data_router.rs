@@ -7,6 +7,7 @@ use crate::ignite_configuration::IgniteConfiguration;
 use crate::ignite_error::{HandleResult, IgniteResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
+use crate::protocol::HandshakeReq;
 use crate::protocol_version::ProtocolVersion;
 
 /// Component which is responsible for establishing and
@@ -47,11 +48,13 @@ impl DataRouter {
     }
 
     // Try perform handshake with the specified version
-    fn handshake(&mut self, _ver: &ProtocolVersion) -> IgniteResult<()> {
+    fn handshake(&mut self, ver: ProtocolVersion) -> IgniteResult<()> {
         assert!(
             self.conn.is_some(),
             "Should never be called without opening connection"
         );
+
+        let req = HandshakeReq::new(ver, self.cfg.get_user(), self.cfg.get_password());
 
         Ok(())
     }
