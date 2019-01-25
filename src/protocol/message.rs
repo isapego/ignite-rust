@@ -1,4 +1,5 @@
 use crate::protocol::{OutStream, Write};
+use crate::protocol::{InStream, Read};
 use crate::protocol_version::ProtocolVersion;
 
 /// Type of client. There is only one type of client
@@ -31,6 +32,17 @@ pub struct HandshakeReq<'a> {
     pass: &'a str,
 }
 
+impl<'a> HandshakeReq<'a> {
+    /// Make new instance
+    pub fn new(ver: ProtocolVersion, user: &'a str, pass: &'a str) -> Self {
+        HandshakeReq {
+            ver: ver,
+            user: user,
+            pass: pass,
+        }
+    }
+}
+
 impl<'a> Write for HandshakeReq<'a> {
     fn write(&self, out: &OutStream) {
         out.write_i8(RequestType::Handshake as i8);
@@ -44,13 +56,42 @@ impl<'a> Write for HandshakeReq<'a> {
     }
 }
 
-impl<'a> HandshakeReq<'a> {
-    /// Make new instance
-    pub fn new(ver: ProtocolVersion, user: &'a str, pass: &'a str) -> Self {
-        HandshakeReq {
-            ver: ver,
-            user: user,
-            pass: pass,
-        }
+/// Response enum.
+pub enum Response<A, R> {
+    Accept(A),
+    Reject(R),
+}
+
+/// Handshake reject. This response is unique just as request, as it does not
+/// implement Response trait.
+pub struct HandshakeReject {
+    ver: ProtocolVersion,
+    error: String,
+}
+
+impl HandshakeReject {
+    /// Make new instance.
+    fn new(ver: ProtocolVersion, error: String) -> Self {
+        HandshakeReject{ver: ver, error: error}
     }
 }
+
+/// Handshake response.
+pub type HandshakeRsp = Response<(), HandshakeReject>;
+
+// impl Read for HandshakeRsp {
+//     type Item = HandshakeRsp;
+
+//     fn read(stream: &mut InStream) -> HandshakeRsp {
+//         let accepted = stream.read_bool();
+
+//         if accepted {
+//             return Response::Accept(());
+//         }
+
+//         let ver = ProtocolVersion::read(stream);
+//         let err = stream.read_str();
+
+//         Response::Reject(HandshakeReject::new(ver, err))
+//     }
+// }
