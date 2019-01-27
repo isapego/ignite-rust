@@ -1,7 +1,9 @@
-use std::alloc;
 use std::mem;
 use std::ptr;
 use std::thread;
+use std::cell::Cell;
+
+use super::growing_buffer::GrowingBuffer;
 
 /// Trait for a type that can be written to a stream
 pub trait Write {
@@ -31,81 +33,32 @@ const MAX_CAPACITY: usize = ::std::i32::MAX as usize;
 
 /// Writing stream abstraction
 pub struct OutStream {
-    mem: ptr::NonNull<u8>,
-    len: usize,
-    pos: usize,
+    buffer: GrowingBuffer,
+    pos: Cell<usize>,
 }
 
 impl OutStream {
     /// Make new instance
     pub fn new() -> Self {
-        OutStream {
-            mem: ptr::NonNull::dangling(),
-            len: 0,
-            pos: 0,
+        Self {
+            buffer: GrowingBuffer::new(),
+            pos: Cell::new(0),
         }
     }
 
     /// Ensure that capacity is enough to fit the required number of bytes
     fn ensure_capacity(&self, capacity: usize) {
-        if self.pos + capacity <= self.len {
-            return;
-        }
-
-        assert!(capacity <= MAX_CAPACITY, "Capacity overflow");
-
-        let mut new_len = if self.len < DEFAULT_CAPACITY {
-            DEFAULT_CAPACITY
-        } else {
-            self.len
-        };
-
-        while new_len < capacity {
-            new_len *= 2;
-
-            if new_len >= MAX_CAPACITY {
-                new_len = MAX_CAPACITY;
-
-                break;
-            }
-        }
-
-        unsafe {
-            let new_mem = if self.len == 0 {
-                let layout = Self::layout_for_len(new_len);
-
-                alloc::alloc(layout)
-            } else {
-                let layout = Self::layout_for_len(self.len);
-
-                alloc::realloc(self.mut_ptr(), layout, new_len)
-            };
-
-            assert!(!new_mem.is_null(), "Out of memory");
-
-            let new_non_null = ptr::NonNull::new_unchecked(new_mem);
-
-            let me = self as *const Self as *mut Self;
-
-            (*me).mem = new_non_null;
-            (*me).len = new_len;
-        }
+        self.buffer.ensure_len(self.pos.get() + capacity);
     }
 
     /// Get filled memory
     pub fn into_memory(self) -> Box<[u8]> {
-        unsafe {
-            let res = Vec::from_raw_parts(self.mem.as_ptr(), self.pos, self.len).into_boxed_slice();
-
-            mem::forget(self);
-
-            res
-        }
+        self.buffer.into_memory(self.pos.get())
     }
 
     /// Get current position in stream
     pub fn position(&self) -> usize {
-        self.pos
+        self.pos.get()
     }
 
     /// Write i8 value to a stream
@@ -212,9 +165,7 @@ impl OutStream {
 
     /// Write i32 value without capacity checks
     unsafe fn unsafe_write_i32(&self, value: i32) {
-        let pos = self.pos;
-
-        self.unsafe_write_i32_to_pos(pos, value);
+        self.unsafe_write_i32_to_pos(self.pos.get(), value);
 
         self.add_pos(4);
     }
@@ -259,8 +210,7 @@ impl OutStream {
     /// Unchecked
     #[inline(always)]
     unsafe fn mut_ptr_to_free_space(&self) -> *mut u8 {
-        let pos = self.pos;
-        self.mut_ptr_to_position(pos)
+        self.mut_ptr_to_position(self.pos.get())
     }
 
     /// Get mutable pointer to a free space
@@ -274,38 +224,13 @@ impl OutStream {
     /// Unchecked
     #[inline(always)]
     unsafe fn mut_ptr(&self) -> *mut u8 {
-        self.mem.as_ref() as *const u8 as *mut u8
-    }
-
-    /// Get layout for the memory of the specified length
-    /// Unchecked
-    #[inline(always)]
-    unsafe fn layout_for_len(len: usize) -> alloc::Layout {
-        alloc::Layout::from_size_align_unchecked(len, mem::align_of::<u8>())
+        self.buffer.mut_ptr()
     }
 
     /// Increase position
-    /// Unchecked
     #[inline(always)]
     fn add_pos(&self, add: usize) {
-        unsafe {
-            let me = self as *const Self as *mut Self;
-
-            (*me).pos += add;
-        }
-    }
-}
-
-/// Implementing drop for OutStream to deal with memory deallocation
-impl Drop for OutStream {
-    fn drop(&mut self) {
-        if self.len != 0 {
-            unsafe {
-                let layout = OutStream::layout_for_len(self.len);
-
-                alloc::dealloc(self.mut_ptr(), layout);
-            }
-        }
+        self.pos.set(self.pos.get() + add);
     }
 }
 
@@ -324,7 +249,7 @@ impl Drop for ShouldNotDrop {
 pub struct ReservedI32<'a> {
     stream: &'a OutStream,
     pos: usize,
-    _marker: ShouldNotDrop,
+    snd: ShouldNotDrop,
 }
 
 impl<'a> ReservedI32<'a> {
@@ -332,8 +257,8 @@ impl<'a> ReservedI32<'a> {
     fn new<'b: 'a>(stream: &'b OutStream) -> Self {
         Self {
             stream: stream,
-            pos: stream.pos,
-            _marker: ShouldNotDrop,
+            pos: stream.pos.get(),
+            snd: ShouldNotDrop,
         }
     }
 
@@ -361,7 +286,7 @@ impl<'a> ReservedLen<'a> {
 
     /// Set value. Consumes an instance.
     pub fn set(self) {
-        let len = self.val.stream.pos - self.val.pos - 4;
+        let len = self.val.stream.pos.get() - self.val.pos - 4;
         self.val.set(len as i32);
     }
 }
