@@ -2,7 +2,7 @@ use std::convert::Into;
 use std::iter::{IntoIterator, Iterator};
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
-use crate::ignite_error::{HandleResult, IgniteResult};
+use crate::ignite_error::{HandleResult, IgniteError, IgniteResult};
 
 pub const DEFAULT_PORT: u16 = 10800;
 
@@ -36,11 +36,17 @@ impl EndPoint {
 
         let host = match iter.next() {
             Some(h) => h,
-            None => return Err("Parsing error: Host can not be an empty string".into()),
+            None => {
+                return Err(IgniteError::new(
+                    "Parsing error: Host can not be an empty string",
+                ))
+            }
         };
 
         if host.is_empty() {
-            return Err("Parsing error: Host can not be an empty string".into());
+            return Err(IgniteError::new(
+                "Parsing error: Host can not be an empty string",
+            ));
         }
 
         let range = match iter.next() {
@@ -49,14 +55,20 @@ impl EndPoint {
         };
 
         if iter.next().is_some() {
-            return Err("Parsing error: Unexpected number of semicolons ':' in endpoint".into());
+            return Err(IgniteError::new(
+                "Parsing error: Unexpected number of semicolons ':' in endpoint",
+            ));
         };
 
         let mut range_iter = range.trim().split("..");
 
         let port_begin_s = match range_iter.next() {
             Some(p) => p,
-            None => return Err("Parsing error: Port can not be an empty string".into()),
+            None => {
+                return Err(IgniteError::new(
+                    "Parsing error: Port can not be an empty string",
+                ))
+            }
         };
 
         let port_begin = port_begin_s
@@ -64,7 +76,7 @@ impl EndPoint {
             .rewrap_on_error("Parsing error: can not parse port")?;
 
         if port_begin == 0 {
-            return Err("Parsing error: TCP port can not be zero".into());
+            return Err(IgniteError::new("Parsing error: TCP port can not be zero"));
         }
 
         let port_end_s = match range_iter.next() {
@@ -77,15 +89,15 @@ impl EndPoint {
             .rewrap_on_error("Parsing error: can not parse port range")?;
 
         if port_begin > port_end {
-            return Err(
-                "Parsing error: beginning of the port range can not be bigger than the end".into(),
-            );
+            return Err(IgniteError::new(
+                "Parsing error: beginning of the port range can not be bigger than the end",
+            ));
         }
 
         if range_iter.next().is_some() {
-            return Err(
-                "Parsing error: Unexpected number of range separators '..' in endpoint".into(),
-            );
+            return Err(IgniteError::new(
+                "Parsing error: Unexpected number of range separators '..' in endpoint",
+            ));
         };
 
         Ok(EndPoint::new(host, port_begin, port_end))

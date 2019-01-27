@@ -1,5 +1,5 @@
-use crate::protocol::{OutStream, Write};
-use crate::protocol::{InStream, Read};
+use crate::protocol::{InStream, Readable};
+use crate::protocol::{OutStream, Writable};
 use crate::protocol_version::ProtocolVersion;
 
 /// Type of client. There is only one type of client
@@ -43,7 +43,7 @@ impl<'a> HandshakeReq<'a> {
     }
 }
 
-impl<'a> Write for HandshakeReq<'a> {
+impl<'a> Writable for HandshakeReq<'a> {
     fn write(&self, out: &OutStream) {
         out.write_i8(RequestType::Handshake as i8);
 
@@ -72,17 +72,20 @@ pub struct HandshakeReject {
 impl HandshakeReject {
     /// Make new instance.
     fn new(ver: ProtocolVersion, error: String) -> Self {
-        HandshakeReject{ver: ver, error: error}
+        HandshakeReject {
+            ver: ver,
+            error: error,
+        }
     }
 }
 
 /// Handshake response.
 pub type HandshakeRsp = Response<(), HandshakeReject>;
 
-// impl Read for HandshakeRsp {
+// impl Readable for HandshakeRsp {
 //     type Item = HandshakeRsp;
 
-//     fn read(stream: &mut InStream) -> HandshakeRsp {
+//     fn read(stream: &InStream) -> HandshakeRsp {
 //         let accepted = stream.read_bool();
 
 //         if accepted {

@@ -1,8 +1,8 @@
+mod growing_buffer;
+mod in_stream;
 mod message;
 mod out_stream;
-mod in_stream;
-mod growing_buffer;
 
-pub use self::message::HandshakeReq;
-pub use self::out_stream::{OutStream, Write};
-pub use self::in_stream::{InStream, Read};
+pub use self::in_stream::{InStream, Readable};
+pub use self::message::{HandshakeReq, HandshakeRsp};
+pub use self::out_stream::{OutStream, Writable};

@@ -2,6 +2,7 @@ use log::Level;
 use std::convert::{From, Into};
 use std::error::Error;
 use std::fmt;
+use std::sync::PoisonError;
 
 /// We keep all the content here
 #[derive(Debug)]
@@ -68,12 +69,9 @@ impl fmt::Display for IgniteError {
     }
 }
 
-impl<S> From<S> for IgniteError
-where
-    S: Into<String>,
-{
-    fn from(serr: S) -> Self {
-        IgniteError::new(serr)
+impl<T> From<PoisonError<T>> for IgniteError {
+    fn from(perr: PoisonError<T>) -> Self {
+        IgniteError::new("Connection is probably poisoned")
     }
 }
 

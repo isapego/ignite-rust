@@ -1,8 +1,8 @@
 use std::alloc;
+use std::cell::Cell;
+use std::cmp;
 use std::mem;
 use std::ptr;
-use std::cmp;
-use std::cell::Cell;
 
 /// Default reserved memory capacity
 const DEFAULT_CAPACITY: usize = 1024;
@@ -99,9 +99,7 @@ impl GrowingBuffer {
     /// Get mutable pointer
     #[inline(always)]
     pub fn mut_ptr(&self) -> *mut u8 {
-        unsafe {
-            self.mem.as_ref() as *const u8 as *mut u8
-        }
+        unsafe { self.mem.as_ref() as *const u8 as *mut u8 }
     }
 }
 

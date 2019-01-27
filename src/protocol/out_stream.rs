@@ -1,18 +1,18 @@
+use std::cell::Cell;
 use std::mem;
 use std::ptr;
 use std::thread;
-use std::cell::Cell;
 
 use super::growing_buffer::GrowingBuffer;
 
 /// Trait for a type that can be written to a stream
-pub trait Write {
+pub trait Writable {
     fn write(&self, out: &OutStream);
 }
 
-impl Write {
-    /// Pack any Write value into boxed slice
-    pub fn pack(val: &dyn Write) -> Box<[u8]> {
+impl Writable {
+    /// Pack any Writable value into boxed slice
+    pub fn pack<T: Writable>(val: T) -> Box<[u8]> {
         let stream = OutStream::new();
 
         let len = stream.reserve_len();

@@ -1,13 +1,15 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use std::io::Write;
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
+use std::sync::Mutex;
 
 use crate::ignite_configuration::IgniteConfiguration;
-use crate::ignite_error::{HandleResult, IgniteResult};
+use crate::ignite_error::{HandleResult, IgniteError, IgniteResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
-use crate::protocol::HandshakeReq;
+use crate::protocol::{HandshakeReq, HandshakeRsp, Readable, Writable};
 use crate::protocol_version::ProtocolVersion;
 
 /// Component which is responsible for establishing and
@@ -18,7 +20,7 @@ use crate::protocol_version::ProtocolVersion;
 #[derive(Debug)]
 pub struct DataRouter {
     cfg: Rc<IgniteConfiguration>,
-    conn: Option<TcpStream>,
+    conn: Mutex<Option<TcpStream>>,
 }
 
 impl DataRouter {
@@ -26,7 +28,7 @@ impl DataRouter {
     pub fn new(cfg: Rc<IgniteConfiguration>) -> DataRouter {
         DataRouter {
             cfg: cfg,
-            conn: None,
+            conn: Mutex::new(None),
         }
     }
 
@@ -49,15 +51,20 @@ impl DataRouter {
 
     // Try perform handshake with the specified version
     fn handshake(&mut self, ver: ProtocolVersion) -> IgniteResult<()> {
-        assert!(
-            self.conn.is_some(),
-            "Should never be called without opening connection"
-        );
-
         let req = HandshakeReq::new(ver, self.cfg.get_user(), self.cfg.get_password());
+        let req_data = Writable::pack(req);
+
+        let lock = self.conn.get_mut()?;
+        let conn = lock
+            .as_mut()
+            .expect("Should never be called on closed connection");
+
+        conn.write_all(&req_data);
 
         Ok(())
     }
+
+    // fn send()
 
     /// Try establish initial connection with Ignite cluster
     pub fn initial_connect(&mut self) -> IgniteResult<()> {
@@ -85,12 +92,14 @@ impl DataRouter {
 
                 // TODO: Implement handshake here
 
-                self.conn = Some(stream);
+                let lock = self.conn.get_mut()?;
+
+                *lock = Some(stream);
 
                 return Ok(());
             }
         }
 
-        Err("Can not connect to any host".into())
+        Err(IgniteError::new("Can not connect to any host"))
     }
 }
