@@ -6,7 +6,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use crate::ignite_configuration::IgniteConfiguration;
-use crate::ignite_error::{HandleResult, IgniteError, IgniteResult};
+use crate::ignite_error::{RewrapResult, ReplaceResult, LogResult, IgniteError, IgniteResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
 use crate::protocol::{HandshakeReq, HandshakeRsp, Readable, Writable};
@@ -27,11 +27,12 @@ impl DataRouter {
     /// Make new instance
     pub fn new(cfg: Rc<IgniteConfiguration>) -> DataRouter {
         DataRouter {
-            cfg: cfg,
+            cfg,
             conn: Mutex::new(None),
         }
     }
 
+    /// Try establish connection with the address
     fn try_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
         let stream = TcpStream::connect(addr)
             .rewrap_on_error(format!("Failed to connect to remote host {}", addr))?;
@@ -49,17 +50,17 @@ impl DataRouter {
         Ok(stream)
     }
 
-    // Try perform handshake with the specified version
+    /// Try perform handshake with the specified version
     fn handshake(&mut self, ver: ProtocolVersion) -> IgniteResult<()> {
         let req = HandshakeReq::new(ver, self.cfg.get_user(), self.cfg.get_password());
         let req_data = Writable::pack(req);
 
-        let lock = self.conn.get_mut()?;
+        let lock = self.conn.get_mut().replace_on_error("Connection is probably poisoned")?;
         let conn = lock
             .as_mut()
             .expect("Should never be called on closed connection");
 
-        conn.write_all(&req_data);
+        conn.write_all(&req_data).rewrap_on_error("Can not send request")?;
 
         Ok(())
     }
@@ -92,7 +93,12 @@ impl DataRouter {
 
                 // TODO: Implement handshake here
 
-                let lock = self.conn.get_mut()?;
+                // We do not care about if the inner value is poisoned, as we
+                // are going to reassign it without reading.
+                let lock = match self.conn.get_mut() {
+                    Ok(l) => l,
+                    Err(e) => e.into_inner(),
+                };
 
                 *lock = Some(stream);
 

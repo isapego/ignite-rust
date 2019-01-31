@@ -9,6 +9,6 @@ mod net;
 mod protocol;
 mod protocol_version;
 
-pub use ignite_client::IgniteClient;
-pub use ignite_configuration::IgniteConfiguration;
-pub use ignite_error::{IgniteError, IgniteResult};
+pub use crate::ignite_client::IgniteClient;
+pub use crate::ignite_configuration::IgniteConfiguration;
+pub use crate::ignite_error::{IgniteError, IgniteResult};

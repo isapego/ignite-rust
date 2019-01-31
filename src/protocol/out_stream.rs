@@ -256,7 +256,7 @@ impl<'a> ReservedI32<'a> {
     /// Make new instance
     fn new<'b: 'a>(stream: &'b OutStream) -> Self {
         Self {
-            stream: stream,
+            stream,
             pos: stream.pos.get(),
             snd: ShouldNotDrop,
         }

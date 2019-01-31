@@ -1,8 +1,7 @@
 use log::Level;
-use std::convert::{From, Into};
+use std::convert::Into;
 use std::error::Error;
 use std::fmt;
-use std::sync::PoisonError;
 
 /// We keep all the content here
 #[derive(Debug)]
@@ -14,10 +13,7 @@ struct IgniteErrorContents {
 impl IgniteErrorContents {
     /// Make new instance
     fn new(message: String, cause: Option<Box<Error>>) -> IgniteErrorContents {
-        IgniteErrorContents {
-            message: message,
-            cause: cause,
-        }
+        IgniteErrorContents { message, cause }
     }
 }
 
@@ -69,20 +65,13 @@ impl fmt::Display for IgniteError {
     }
 }
 
-impl<T> From<PoisonError<T>> for IgniteError {
-    fn from(perr: PoisonError<T>) -> Self {
-        IgniteError::new("Connection is probably poisoned")
-    }
-}
-
 pub type IgniteResult<T> = Result<T, IgniteError>;
 
 /// Trait that intended to be implemented for Result
-/// types, enabling automatical handling of errors.
+/// types, enabling automatic handling of errors.
 ///
 /// For internal use only.
-pub trait HandleResult<R> {
-    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
+pub trait LogResult<R> {
     fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R>;
     fn log_e_on_error<S: Into<String>>(self, message: S) -> Option<R>;
     fn log_w_on_error<S: Into<String>>(self, message: S) -> Option<R>;
@@ -90,18 +79,10 @@ pub trait HandleResult<R> {
     fn log_d_on_error<S: Into<String>>(self, message: S) -> Option<R>;
 }
 
-impl<R, E> HandleResult<R> for Result<R, E>
-where
-    E: Error + 'static,
+impl<R, E> LogResult<R> for Result<R, E>
+    where
+        E: Error,
 {
-    /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
-    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
-        match self {
-            Ok(r) => Ok(r),
-            Err(e) => Err(IgniteError::new_with_source(message, Box::new(e))),
-        }
-    }
-
     fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R> {
         match self {
             Ok(r) => Some(r),
@@ -131,6 +112,46 @@ where
 
     fn log_d_on_error<S: Into<String>>(self, message: S) -> Option<R> {
         self.log_on_error(Level::Debug, message)
+    }
+}
+
+/// Trait that intended to be implemented for Result types, allowing for
+/// wrapping any results with IgniteResult.
+/// For internal use only.
+pub trait RewrapResult<R> {
+    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
+}
+
+impl<R, E> RewrapResult<R> for Result<R, E>
+    where
+        E: Error + 'static,
+{
+    /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
+    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
+        match self {
+            Ok(r) => Ok(r),
+            Err(e) => Err(IgniteError::new_with_source(message, Box::new(e))),
+        }
+    }
+}
+
+/// Trait that intended to be implemented for Result types, allowing for
+/// replacing any results with IgniteResult.
+/// For internal use only.
+pub trait ReplaceResult<R> {
+    fn replace_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
+}
+
+impl<R, E> ReplaceResult<R> for Result<R, E>
+    where
+        E: Error,
+{
+    /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
+    fn replace_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
+        match self {
+            Ok(r) => Ok(r),
+            Err(_) => Err(IgniteError::new(message)),
+        }
     }
 }
 
