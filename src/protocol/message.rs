@@ -14,7 +14,7 @@ enum RequestType {
 }
 
 /// Type of response message
-pub enum ResponseType {
+enum ResponseType {
     Handshake = 1,
 }
 

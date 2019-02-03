@@ -1,6 +1,6 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::io::Write;
+use std::io::{Write, Read};
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
 use std::sync::Mutex;
@@ -9,7 +9,8 @@ use crate::ignite_configuration::IgniteConfiguration;
 use crate::ignite_error::{RewrapResult, ReplaceResult, LogResult, IgniteError, IgniteResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
-use crate::protocol::{HandshakeReq, HandshakeRsp, Readable, Writable};
+use crate::protocol::{Readable, Writable};
+use crate::protocol::message::{HandshakeReq, HandshakeRsp};
 use crate::protocol_version::ProtocolVersion;
 
 /// Component which is responsible for establishing and
@@ -62,10 +63,18 @@ impl DataRouter {
 
         conn.write_all(&req_data).rewrap_on_error("Can not send request")?;
 
+//        conn.read_
+
         Ok(())
     }
 
-    // fn send()
+//    fn receive_raw_rsp(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
+//        let len_buf = [0u8; 4];
+//
+//        conn.read_exact(&len_buf).rewrap_on_error("Error while reading response length")?;
+//
+//        Ok(len_buf)
+//    }
 
     /// Try establish initial connection with Ignite cluster
     pub fn initial_connect(&mut self) -> IgniteResult<()> {
