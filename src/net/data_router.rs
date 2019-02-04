@@ -53,6 +53,8 @@ impl DataRouter {
 
     /// Try perform handshake with the specified version
     fn handshake(&mut self, ver: ProtocolVersion) -> IgniteResult<()> {
+        use crate::protocol::utils;
+
         let req = HandshakeReq::new(ver, self.cfg.get_user(), self.cfg.get_password());
         let req_data = Writable::pack(req);
 
@@ -61,20 +63,31 @@ impl DataRouter {
             .as_mut()
             .expect("Should never be called on closed connection");
 
-        conn.write_all(&req_data).rewrap_on_error("Can not send request")?;
+        conn.write_all(&req_data).rewrap_on_error("Can not send handshake request")?;
 
-//        conn.read_
+        let rsp_data = Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive handshake response")?;
+
+        let rsp = utils::deserialize_readable::<HandshakeRsp>(&rsp_data);
 
         Ok(())
     }
 
-//    fn receive_raw_rsp(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
-//        let len_buf = [0u8; 4];
-//
-//        conn.read_exact(&len_buf).rewrap_on_error("Error while reading response length")?;
-//
-//        Ok(len_buf)
-//    }
+    /// Receive response in a raw byte array form
+    fn receive_raw_rsp(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
+        use crate::protocol::utils;
+
+        let mut len_buf = [0u8; 4];
+
+        conn.read_exact(&mut len_buf).rewrap_on_error("Error while reading response length")?;
+
+        let len = utils::deserialize_i32(&len_buf);
+
+        let mut buf = vec![0u8; len as usize].into_boxed_slice();
+
+        conn.read_exact(&mut buf).rewrap_on_error("Error while reading response payload")?;
+
+        Ok(buf)
+    }
 
     /// Try establish initial connection with Ignite cluster
     pub fn initial_connect(&mut self) -> IgniteResult<()> {

@@ -15,14 +15,14 @@ impl Writable for ProtocolVersion {
     }
 }
 
-// impl Readable for ProtocolVersion {
-//     type Item = Self;
+impl Readable for ProtocolVersion {
+    type Item = Self;
 
-//     fn read(stream: &InStream) -> Self {
-//         let major = stream.read_i16();
-//         let minor = stream.read_i16();
-//         let maintaince = stream.read_i16();
+    fn read(stream: &InStream) -> Self {
+        let major = stream.read_i16();
+        let minor = stream.read_i16();
+        let maintaince = stream.read_i16();
 
-//         Self{major: major, minor: minor, maintaince: maintaince}
-//     }
-// }
+        Self{major, minor, maintaince}
+    }
+}

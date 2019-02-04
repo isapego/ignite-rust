@@ -1,4 +1,6 @@
-/// Deserialize i32 from byte slice
+use super::{InStream, Readable};
+
+/// Deserialize i32 from byte array
 pub fn deserialize_i32(data: &[u8; 4]) -> i32 {
     (data[0] as i32 & 0xFFi32) |
         ((data[1] as i32 & 0xFFi32) << 8) |
@@ -6,6 +8,12 @@ pub fn deserialize_i32(data: &[u8; 4]) -> i32 {
         ((data[3] as i32 & 0xFFi32) << 24)
 }
 
+/// Deserialize to a value of a certain type
+pub fn deserialize_readable<T: Readable<Item=T>>(data: &[u8]) -> T {
+    let stream = InStream::new(data);
+
+    T::read(&stream)
+}
 
 #[test]
 fn test_deserialize_i32_1() {

@@ -35,11 +35,7 @@ pub struct HandshakeReq<'a> {
 impl<'a> HandshakeReq<'a> {
     /// Make new instance
     pub fn new(ver: ProtocolVersion, user: &'a str, pass: &'a str) -> Self {
-        HandshakeReq {
-            ver: ver,
-            user: user,
-            pass: pass,
-        }
+        HandshakeReq {ver, user, pass}
     }
 }
 
@@ -72,29 +68,26 @@ pub struct HandshakeReject {
 impl HandshakeReject {
     /// Make new instance.
     fn new(ver: ProtocolVersion, error: String) -> Self {
-        HandshakeReject {
-            ver: ver,
-            error: error,
-        }
+        HandshakeReject {ver, error}
     }
 }
 
 /// Handshake response.
 pub type HandshakeRsp = Response<(), HandshakeReject>;
 
-// impl Readable for HandshakeRsp {
-//     type Item = HandshakeRsp;
+impl Readable for HandshakeRsp {
+    type Item = HandshakeRsp;
 
-//     fn read(stream: &InStream) -> HandshakeRsp {
-//         let accepted = stream.read_bool();
+    fn read(stream: &InStream) -> HandshakeRsp {
+        let accepted = stream.read_bool();
 
-//         if accepted {
-//             return Response::Accept(());
-//         }
+        if accepted {
+            return Response::Accept(());
+        }
 
-//         let ver = ProtocolVersion::read(stream);
-//         let err = stream.read_str();
+        let ver = ProtocolVersion::read(stream);
+        let err = stream.read_str();
 
-//         Response::Reject(HandshakeReject::new(ver, err))
-//     }
-// }
+        Response::Reject(HandshakeReject::new(ver, err.into_owned()))
+    }
+}
