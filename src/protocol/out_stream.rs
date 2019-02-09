@@ -48,7 +48,7 @@ impl OutStream {
 
     /// Ensure that capacity is enough to fit the required number of bytes
     fn ensure_capacity(&self, capacity: usize) {
-        self.buffer.ensure_len(self.pos.get() + capacity);
+        self.buffer.reserve(self.pos.get() + capacity);
     }
 
     /// Get filled memory
