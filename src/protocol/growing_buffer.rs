@@ -4,8 +4,8 @@ use std::cmp;
 use std::mem;
 use std::ptr;
 
-/// Default reserved memory capacity
-const DEFAULT_CAPACITY: usize = 1024;
+/// Minimal reserved memory capacity
+const MIN_CAPACITY: usize = 1024;
 
 /// Max capacity of the underlying memory
 const MAX_CAPACITY: usize = ::std::i32::MAX as usize;
@@ -25,10 +25,17 @@ impl GrowingBuffer {
         }
     }
 
+    /// Make new instance
+    pub fn with_capacity(cap: usize) -> Self {
+        let mut obj = Self::new();
+        obj.reserve(cap);
+        obj
+    }
+
     /// Get filled memory in specified range.
     pub fn into_memory(self, len: usize) -> Box<[u8]> {
         let cap = self.len.get();
-        assert!(len <= cap, "Invalid length");
+        debug_assert!(len <= cap, "Invalid length");
 
         unsafe {
             let res = Vec::from_raw_parts(self.mem.as_ptr(), len, cap).into_boxed_slice();
@@ -39,26 +46,22 @@ impl GrowingBuffer {
         }
     }
 
-    /// Ensure that capacity is enough to fit the required number of bytes
-    pub fn ensure_len(&self, need_len: usize) {
+    /// Ensure that capacity is enough to fit the required number of bytes.
+    pub fn reserve(&self, need_len: usize) {
         let old_len = self.len.get();
-        if old_len > need_len {
+        if old_len >= need_len {
             return;
         }
 
-        assert!(need_len <= MAX_CAPACITY, "Capacity overflow");
+        debug_assert!(need_len <= MAX_CAPACITY, "Capacity overflow");
 
-        let mut new_len = cmp::max(DEFAULT_CAPACITY, old_len);
+        let mut new_len = cmp::max(
+            MIN_CAPACITY,
+            super::utils::round_to_pow2_u32(need_len as u32) as usize,
+        );
 
-        while new_len < need_len {
-            new_len *= 2;
-
-            if new_len >= MAX_CAPACITY {
-                new_len = MAX_CAPACITY;
-
-                break;
-            }
-        }
+        debug_assert!(new_len <= MAX_CAPACITY, "Internal allocation error");
+        debug_assert!(new_len >= need_len, "Internal allocation error");
 
         self.realloc_mem(new_len);
     }
@@ -67,7 +70,7 @@ impl GrowingBuffer {
     fn realloc_mem(&self, new_len: usize) {
         let old_len = self.len.get();
 
-        assert!(new_len > old_len, "Buffer may only grow!");
+        debug_assert!(new_len > old_len, "Buffer may only grow!");
 
         unsafe {
             let new_mem = if old_len == 0 {
