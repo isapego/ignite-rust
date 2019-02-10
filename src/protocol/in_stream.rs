@@ -55,6 +55,22 @@ impl<'a> InStream<'a> {
             ((self.mem[pos + 3] as i32 & 0xFFi32) << 24)
     }
 
+    /// Read i64 value from the stream
+    pub fn read_i64(&self) -> i64 {
+        let pos = self.pos.get();
+
+        self.inc_pos(8);
+
+        (self.mem[pos] as i64 & 0xFFi64) |
+            ((self.mem[pos + 1] as i64 & 0xFFi64) << 8) |
+            ((self.mem[pos + 2] as i64 & 0xFFi64) << 16) |
+            ((self.mem[pos + 3] as i64 & 0xFFi64) << 24) |
+            ((self.mem[pos + 4] as i64 & 0xFFi64) << 32) |
+            ((self.mem[pos + 5] as i64 & 0xFFi64) << 40) |
+            ((self.mem[pos + 6] as i64 & 0xFFi64) << 48) |
+            ((self.mem[pos + 7] as i64 & 0xFFi64) << 56)
+    }
+
     /// Read string
     pub fn read_str(&self) -> Cow<'a, str> {
         let len = self.read_i32();
