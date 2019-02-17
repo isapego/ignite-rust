@@ -35,7 +35,7 @@ pub struct HandshakeReq<'a> {
 impl<'a> HandshakeReq<'a> {
     /// Make new instance
     pub fn new(ver: ProtocolVersion, user: &'a str, pass: &'a str) -> Self {
-        HandshakeReq {ver, user, pass}
+        HandshakeReq { ver, user, pass }
     }
 }
 
@@ -68,7 +68,7 @@ pub struct HandshakeReject {
 impl HandshakeReject {
     /// Make new instance.
     fn new(ver: ProtocolVersion, error: String) -> Self {
-        HandshakeReject {ver, error}
+        HandshakeReject { ver, error }
     }
 }
 

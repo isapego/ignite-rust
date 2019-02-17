@@ -46,6 +46,14 @@ impl OutStream {
         }
     }
 
+    /// Make new instance with required capacity
+    pub fn with_capacity(cap: usize) -> Self {
+        Self {
+            buffer: GrowingBuffer::with_capacity(cap),
+            pos: Cell::new(0),
+        }
+    }
+
     /// Ensure that capacity is enough to fit the required number of bytes
     fn ensure_capacity(&self, capacity: usize) {
         self.buffer.reserve(self.pos.get() + capacity);

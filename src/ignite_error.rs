@@ -80,8 +80,8 @@ pub trait LogResult<R> {
 }
 
 impl<R, E> LogResult<R> for Result<R, E>
-    where
-        E: Error,
+where
+    E: Error,
 {
     fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R> {
         match self {
@@ -123,8 +123,8 @@ pub trait RewrapResult<R> {
 }
 
 impl<R, E> RewrapResult<R> for Result<R, E>
-    where
-        E: Error + 'static,
+where
+    E: Error + 'static,
 {
     /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
     fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
@@ -143,8 +143,8 @@ pub trait ReplaceResult<R> {
 }
 
 impl<R, E> ReplaceResult<R> for Result<R, E>
-    where
-        E: Error,
+where
+    E: Error,
 {
     /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
     fn replace_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {

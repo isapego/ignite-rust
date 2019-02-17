@@ -1,5 +1,5 @@
-use std::cell::Cell;
 use std::borrow::Cow;
+use std::cell::Cell;
 
 // Trait for a type that can be read from a stream
 pub trait Readable {
@@ -16,7 +16,10 @@ pub struct InStream<'a> {
 impl<'a> InStream<'a> {
     /// Make new instance
     pub fn new(mem: &'a [u8]) -> Self {
-        Self{mem, pos: Cell::new(0)}
+        Self {
+            mem,
+            pos: Cell::new(0),
+        }
     }
 
     /// Read bool value from the stream
@@ -39,8 +42,7 @@ impl<'a> InStream<'a> {
 
         self.inc_pos(2);
 
-        (self.mem[pos] as i16 & 0xFFi16) |
-            ((self.mem[pos + 1] as i16 & 0xFFi16) << 8)
+        (self.mem[pos] as i16 & 0xFFi16) | ((self.mem[pos + 1] as i16 & 0xFFi16) << 8)
     }
 
     /// Read i32 value from the stream
@@ -49,10 +51,10 @@ impl<'a> InStream<'a> {
 
         self.inc_pos(4);
 
-        (self.mem[pos] as i32 & 0xFFi32) |
-            ((self.mem[pos + 1] as i32 & 0xFFi32) << 8) |
-            ((self.mem[pos + 2] as i32 & 0xFFi32) << 16) |
-            ((self.mem[pos + 3] as i32 & 0xFFi32) << 24)
+        (self.mem[pos] as i32 & 0xFFi32)
+            | ((self.mem[pos + 1] as i32 & 0xFFi32) << 8)
+            | ((self.mem[pos + 2] as i32 & 0xFFi32) << 16)
+            | ((self.mem[pos + 3] as i32 & 0xFFi32) << 24)
     }
 
     /// Read i64 value from the stream
@@ -61,14 +63,14 @@ impl<'a> InStream<'a> {
 
         self.inc_pos(8);
 
-        (self.mem[pos] as i64 & 0xFFi64) |
-            ((self.mem[pos + 1] as i64 & 0xFFi64) << 8) |
-            ((self.mem[pos + 2] as i64 & 0xFFi64) << 16) |
-            ((self.mem[pos + 3] as i64 & 0xFFi64) << 24) |
-            ((self.mem[pos + 4] as i64 & 0xFFi64) << 32) |
-            ((self.mem[pos + 5] as i64 & 0xFFi64) << 40) |
-            ((self.mem[pos + 6] as i64 & 0xFFi64) << 48) |
-            ((self.mem[pos + 7] as i64 & 0xFFi64) << 56)
+        (self.mem[pos] as i64 & 0xFFi64)
+            | ((self.mem[pos + 1] as i64 & 0xFFi64) << 8)
+            | ((self.mem[pos + 2] as i64 & 0xFFi64) << 16)
+            | ((self.mem[pos + 3] as i64 & 0xFFi64) << 24)
+            | ((self.mem[pos + 4] as i64 & 0xFFi64) << 32)
+            | ((self.mem[pos + 5] as i64 & 0xFFi64) << 40)
+            | ((self.mem[pos + 6] as i64 & 0xFFi64) << 48)
+            | ((self.mem[pos + 7] as i64 & 0xFFi64) << 56)
     }
 
     /// Read string

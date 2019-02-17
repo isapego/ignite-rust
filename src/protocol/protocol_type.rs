@@ -1,7 +1,7 @@
 extern crate paste;
 
-use super::{InStream, OutStream};
 use super::header;
+use super::{InStream, OutStream};
 
 /// Represents basic protocol type and defines a set of operations over it
 pub trait ProtocolType {
@@ -13,13 +13,19 @@ pub trait ProtocolType {
 }
 
 /// Write full value
-pub fn write_full<T, I>(val: T, stream: &OutStream) where T : ProtocolType<Item=I> {
+pub fn write_full<T, I>(val: T, stream: &OutStream)
+where
+    T: ProtocolType<Item = I>,
+{
     stream.write_i8(T::HEADER);
     val.write_payload(stream);
 }
 
 /// Read full value
-pub fn read_full<T, I>(stream: &InStream) -> Option<I> where T : ProtocolType<Item=I> {
+pub fn read_full<T, I>(stream: &InStream) -> Option<I>
+where
+    T: ProtocolType<Item = I>,
+{
     let header = stream.read_i8();
 
     if header == T::HEADER {

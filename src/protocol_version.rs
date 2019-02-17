@@ -23,6 +23,10 @@ impl Readable for ProtocolVersion {
         let minor = stream.read_i16();
         let maintaince = stream.read_i16();
 
-        Self{major, minor, maintaince}
+        Self {
+            major,
+            minor,
+            maintaince,
+        }
     }
 }

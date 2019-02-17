@@ -1,16 +1,16 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::io::{Write, Read};
+use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
 use std::sync::Mutex;
 
 use crate::ignite_configuration::IgniteConfiguration;
-use crate::ignite_error::{RewrapResult, ReplaceResult, LogResult, IgniteError, IgniteResult};
+use crate::ignite_error::{IgniteError, IgniteResult, LogResult, ReplaceResult, RewrapResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
-use crate::protocol::{Readable, Writable};
 use crate::protocol::message::{HandshakeReq, HandshakeRsp};
+use crate::protocol::{Readable, Writable};
 use crate::protocol_version::ProtocolVersion;
 
 /// Component which is responsible for establishing and
@@ -58,14 +58,19 @@ impl DataRouter {
         let req = HandshakeReq::new(ver, self.cfg.get_user(), self.cfg.get_password());
         let req_data = Writable::pack(req);
 
-        let lock = self.conn.get_mut().replace_on_error("Connection is probably poisoned")?;
+        let lock = self
+            .conn
+            .get_mut()
+            .replace_on_error("Connection is probably poisoned")?;
         let conn = lock
             .as_mut()
             .expect("Should never be called on closed connection");
 
-        conn.write_all(&req_data).rewrap_on_error("Can not send handshake request")?;
+        conn.write_all(&req_data)
+            .rewrap_on_error("Can not send handshake request")?;
 
-        let rsp_data = Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive handshake response")?;
+        let rsp_data =
+            Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive handshake response")?;
 
         let rsp = utils::deserialize_readable::<HandshakeRsp>(&rsp_data);
 
@@ -78,13 +83,15 @@ impl DataRouter {
 
         let mut len_buf = [0u8; 4];
 
-        conn.read_exact(&mut len_buf).rewrap_on_error("Error while reading response length")?;
+        conn.read_exact(&mut len_buf)
+            .rewrap_on_error("Error while reading response length")?;
 
         let len = utils::deserialize_i32(&len_buf);
 
         let mut buf = vec![0u8; len as usize].into_boxed_slice();
 
-        conn.read_exact(&mut buf).rewrap_on_error("Error while reading response payload")?;
+        conn.read_exact(&mut buf)
+            .rewrap_on_error("Error while reading response payload")?;
 
         Ok(buf)
     }
