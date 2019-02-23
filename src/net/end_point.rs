@@ -7,7 +7,7 @@ use crate::ignite_error::{IgniteError, IgniteResult, RewrapResult};
 pub const DEFAULT_PORT: u16 = 10800;
 
 /// Endpoint, pointing to a single host with a possible range of TCP ports.
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct EndPoint {
     host: String,
     port_begin: u16,
@@ -19,8 +19,8 @@ impl EndPoint {
     fn new<S: Into<String>>(host: S, port_begin: u16, port_end: u16) -> Self {
         EndPoint {
             host: host.into(),
-            port_begin: port_begin,
-            port_end: port_end,
+            port_begin,
+            port_end,
         }
     }
 
@@ -112,7 +112,7 @@ impl EndPoint {
 
         let ips = iter.map(|addr| addr.ip()).collect();
         Ok(ResolvedEndPoint {
-            ips: ips,
+            ips,
             port_begin: self.port_begin,
             port_end: self.port_end,
         })

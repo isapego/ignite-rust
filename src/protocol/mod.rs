@@ -7,5 +7,5 @@ pub mod header;
 pub mod message;
 pub mod utils;
 
-pub use self::in_stream::{InStream, Readable};
-pub use self::out_stream::{OutStream, Writable};
+pub use self::in_stream::{InStream, Readable, Unpack};
+pub use self::out_stream::{OutStream, Pack, Writable};

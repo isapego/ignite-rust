@@ -10,14 +10,19 @@ pub trait Writable {
     fn write(&self, out: &OutStream);
 }
 
-impl Writable {
+/// Trait for a type that can be packed into a byte buffer
+pub trait Pack {
+    fn pack(&self) -> Box<[u8]>;
+}
+
+impl<'a, T: Writable + 'a> Pack for T {
     /// Pack any Writable value into boxed slice
-    pub fn pack<T: Writable>(val: T) -> Box<[u8]> {
+    fn pack(&self) -> Box<[u8]> {
         let stream = OutStream::new();
 
         let len = stream.reserve_len();
 
-        val.write(&stream);
+        self.write(&stream);
 
         len.set();
 

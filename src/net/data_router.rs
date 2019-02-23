@@ -9,14 +9,15 @@ use crate::ignite_configuration::IgniteConfiguration;
 use crate::ignite_error::{IgniteError, IgniteResult, LogResult, ReplaceResult, RewrapResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
+use crate::net::EndPoint;
 use crate::protocol::message::{HandshakeReq, HandshakeRsp};
-use crate::protocol::{Readable, Writable};
+use crate::protocol::{Pack, Readable, Unpack, Writable};
 use crate::protocol_version::ProtocolVersion;
 
 /// Component which is responsible for establishing and
 /// maintaining reliable connection link to the Ignite cluster.
 ///
-/// It aslo responsible for choosing which connection to use for
+/// It also responsible for choosing which connection to use for
 /// a certain request.
 #[derive(Debug)]
 pub struct DataRouter {
@@ -26,8 +27,8 @@ pub struct DataRouter {
 
 impl DataRouter {
     /// Make new instance
-    pub fn new(cfg: Rc<IgniteConfiguration>) -> DataRouter {
-        DataRouter {
+    pub fn new(cfg: Rc<IgniteConfiguration>) -> Self {
+        Self {
             cfg,
             conn: Mutex::new(None),
         }
@@ -53,15 +54,14 @@ impl DataRouter {
 
     /// Try perform handshake with the specified version
     fn handshake(&mut self, ver: ProtocolVersion) -> IgniteResult<()> {
-        use crate::protocol::utils;
-
         let req = HandshakeReq::new(ver, self.cfg.get_user(), self.cfg.get_password());
-        let req_data = Writable::pack(req);
+        let req_data = req.pack();
 
         let lock = self
             .conn
             .get_mut()
             .replace_on_error("Connection is probably poisoned")?;
+
         let conn = lock
             .as_mut()
             .expect("Should never be called on closed connection");
@@ -72,7 +72,7 @@ impl DataRouter {
         let rsp_data =
             Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive handshake response")?;
 
-        let rsp = utils::deserialize_readable::<HandshakeRsp>(&rsp_data);
+        let rsp = HandshakeRsp::unpack(&rsp_data);
 
         Ok(())
     }
@@ -98,7 +98,7 @@ impl DataRouter {
 
     /// Try establish initial connection with Ignite cluster
     pub fn initial_connect(&mut self) -> IgniteResult<()> {
-        let mut end_points = utils::parse_endpoints(self.cfg.get_endpoints())?;
+        let mut end_points = self.cfg.get_endpoints().to_owned();
 
         &mut end_points[..].shuffle(&mut thread_rng());
 
@@ -122,12 +122,9 @@ impl DataRouter {
 
                 // TODO: Implement handshake here
 
-                // We do not care about if the inner value is poisoned, as we
-                // are going to reassign it without reading.
-                let lock = match self.conn.get_mut() {
-                    Ok(l) => l,
-                    Err(e) => e.into_inner(),
-                };
+                // We do not care if the inner value is poisoned, as we are going to reassign it
+                // without reading.
+                let lock = self.conn.get_mut().unwrap_or_else(|e| e.into_inner());
 
                 *lock = Some(stream);
 

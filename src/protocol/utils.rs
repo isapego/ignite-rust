@@ -8,13 +8,6 @@ pub fn deserialize_i32(data: &[u8; 4]) -> i32 {
         | ((data[3] as i32 & 0xFFi32) << 24)
 }
 
-/// Deserialize to a value of a certain type
-pub fn deserialize_readable<T: Readable<Item = T>>(data: &[u8]) -> T {
-    let stream = InStream::new(data);
-
-    T::read(&stream)
-}
-
 /// Calculate the value fast which is the power of two and is greater or equals to the provided
 /// value. See https://graphics.stanford.edu/~seander/bithacks.html#RoundUpPowerOf2 for details.
 pub fn round_to_pow2_u32(val: u32) -> u32 {

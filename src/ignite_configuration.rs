@@ -1,8 +1,11 @@
+use crate::net::utils;
+use crate::net::EndPoint;
+use crate::IgniteResult;
 use std::convert::Into;
 
 #[derive(Debug)]
 pub struct IgniteConfiguration {
-    end_points: String,
+    end_points: Vec<EndPoint>,
     user: String,
     pass: String,
 }
@@ -11,7 +14,7 @@ impl IgniteConfiguration {
     /// Create new configuration with default parameters.
     pub fn new() -> IgniteConfiguration {
         IgniteConfiguration {
-            end_points: String::from("127.0.0.1"),
+            end_points: Vec::new(),
             user: String::new(),
             pass: String::new(),
         }
@@ -35,13 +38,14 @@ impl IgniteConfiguration {
     /// cfg.set_endpoints("example.com");
     /// cfg.set_endpoints("127.0.0.1,example:1234..1500");
     /// ```
-    pub fn set_endpoints<S: Into<String>>(&mut self, end_points: S) {
-        self.end_points = end_points.into();
+    pub fn set_endpoints(&mut self, end_points: &str) -> IgniteResult<()> {
+        self.end_points = utils::parse_endpoints(end_points.into())?;
+        Ok(())
     }
 
     /// Get endpoints.
     /// See set_endpoints() for details on the format.
-    pub fn get_endpoints(&self) -> &str {
+    pub fn get_endpoints(&self) -> &[EndPoint] {
         &self.end_points
     }
 
@@ -65,8 +69,11 @@ fn ignite_configuration_new() {
 fn ignite_configuration_endpoints() {
     let mut cfg = IgniteConfiguration::new();
 
-    let end_points = "127.0.0.1:10800";
+    let set = "127.0.0.1:10800";
 
-    cfg.set_endpoints(end_points);
-    assert_eq!(cfg.get_endpoints(), end_points);
+    cfg.set_endpoints(set).unwrap();
+    let get = cfg.get_endpoints();
+
+    assert_eq!(get.len(), 1);
+    assert_eq!(get[0], EndPoint::from_string(set).unwrap());
 }
