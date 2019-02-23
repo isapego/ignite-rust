@@ -96,8 +96,34 @@ impl DataRouter {
         Ok(buf)
     }
 
-    /// Try establish initial connection with Ignite cluster
-    pub fn initial_connect(&mut self) -> IgniteResult<()> {
+    /// Send a request and get a response.
+    pub fn send_request<Req, Resp>(&mut self, req: Req) -> IgniteResult<Resp::Item>
+        where
+            Req : Pack,
+            Resp: Unpack
+    {
+        let req_data = req.pack();
+
+        let lock = self
+            .conn
+            .get_mut()
+            .replace_on_error("Connection is probably poisoned")?;
+
+        let conn = lock
+            .as_mut()
+            .expect("Should never be called on closed connection");
+
+        conn.write_all(&req_data)
+            .rewrap_on_error("Can not send request")?;
+
+        let rsp_data =
+            Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive response")?;
+
+        Ok(Resp::unpack(&rsp_data))
+    }
+
+    /// Try establish connection with Ignite cluster
+    pub fn establish_connection(&mut self) -> IgniteResult<()> {
         let mut end_points = self.cfg.get_endpoints().to_owned();
 
         &mut end_points[..].shuffle(&mut thread_rng());

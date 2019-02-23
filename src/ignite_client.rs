@@ -23,7 +23,7 @@ impl IgniteClient {
         let cfg_rc = Rc::new(cfg);
         let mut router = DataRouter::new(cfg_rc.clone());
 
-        router.initial_connect()?;
+        router.establish_connection()?;
 
         Ok(IgniteClient {
             cfg: cfg_rc.clone(),
