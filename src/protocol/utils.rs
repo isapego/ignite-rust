@@ -61,7 +61,7 @@ fn test_round_to_pow2_exact() {
 }
 
 #[test]
-fn test_round_to_pow2_random() {
+fn test_round_to_pow2_any() {
     assert_eq!(4, round_to_pow2_u32(3));
     assert_eq!(8, round_to_pow2_u32(5));
     assert_eq!(16, round_to_pow2_u32(12));

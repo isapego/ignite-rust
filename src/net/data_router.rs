@@ -1,5 +1,7 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
+use std::borrow::BorrowMut;
+use std::cell::Cell;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::rc::Rc;
@@ -10,19 +12,26 @@ use crate::ignite_error::{IgniteError, IgniteResult, LogResult, ReplaceResult, R
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
 use crate::net::EndPoint;
-use crate::protocol::message::{HandshakeReq, HandshakeRsp};
+use crate::protocol::message::{HandshakeReq, HandshakeRsp, Response};
 use crate::protocol::{Pack, Readable, Unpack, Writable};
-use crate::protocol_version::ProtocolVersion;
+use crate::protocol_version::{ProtocolVersion, VERSION_1_3_0};
 
-/// Component which is responsible for establishing and
-/// maintaining reliable connection link to the Ignite cluster.
+/// Default version
+const VERSION_DEFAULT: ProtocolVersion = VERSION_1_3_0;
+
+/// Versions supported by the client
+const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_3_0];
+
+/// Component which is responsible for establishing and maintaining reliable
+/// connection link to the Ignite cluster.
 ///
-/// It also responsible for choosing which connection to use for
-/// a certain request.
+/// It also responsible for choosing which connection to use for a certain
+/// request.
 #[derive(Debug)]
 pub struct DataRouter {
     cfg: Rc<IgniteConfiguration>,
     conn: Mutex<Option<TcpStream>>,
+    ver: Cell<ProtocolVersion>,
 }
 
 impl DataRouter {
@@ -31,6 +40,7 @@ impl DataRouter {
         Self {
             cfg,
             conn: Mutex::new(None),
+            ver: Cell::new(VERSION_DEFAULT),
         }
     }
 
@@ -52,31 +62,6 @@ impl DataRouter {
         Ok(stream)
     }
 
-    /// Try perform handshake with the specified version
-    fn handshake(&mut self, ver: ProtocolVersion) -> IgniteResult<()> {
-        let req = HandshakeReq::new(ver, self.cfg.get_user(), self.cfg.get_password());
-        let req_data = req.pack();
-
-        let lock = self
-            .conn
-            .get_mut()
-            .replace_on_error("Connection is probably poisoned")?;
-
-        let conn = lock
-            .as_mut()
-            .expect("Should never be called on closed connection");
-
-        conn.write_all(&req_data)
-            .rewrap_on_error("Can not send handshake request")?;
-
-        let rsp_data =
-            Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive handshake response")?;
-
-        let rsp = HandshakeRsp::unpack(&rsp_data);
-
-        Ok(())
-    }
-
     /// Receive response in a raw byte array form
     fn receive_raw_rsp(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
         use crate::protocol::utils;
@@ -96,61 +81,110 @@ impl DataRouter {
         Ok(buf)
     }
 
-    /// Send a request and get a response.
-    pub fn send_request<Req, Resp>(&mut self, req: Req) -> IgniteResult<Resp::Item>
-        where
-            Req : Pack,
-            Resp: Unpack
-    {
-        let req_data = req.pack();
-
-        let lock = self
+    /// Send request and receive a response as a byte buffers
+    fn send_request_raw(&self, req: &[u8]) -> IgniteResult<Box<[u8]>> {
+        let mut lock = self
             .conn
-            .get_mut()
+            .lock()
             .replace_on_error("Connection is probably poisoned")?;
 
-        let conn = lock
+        let mut conn = lock
             .as_mut()
             .expect("Should never be called on closed connection");
 
-        conn.write_all(&req_data)
+        conn.write_all(&req)
             .rewrap_on_error("Can not send request")?;
 
-        let rsp_data =
-            Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive response")?;
+        Self::receive_raw_rsp(&mut conn).rewrap_on_error("Can not receive response")
+    }
+
+    /// Send a request and get a response.
+    pub fn send_request<Req, Resp>(&self, req: Req) -> IgniteResult<Resp::Item>
+    where
+        Req: Pack,
+        Resp: Unpack,
+    {
+        let req_data = req.pack();
+
+        let rsp_data = self.send_request_raw(&req_data)?;
 
         Ok(Resp::unpack(&rsp_data))
     }
 
+    /// Try perform handshake with the specified version
+    fn handshake(
+        conn: &mut TcpStream,
+        cfg: &IgniteConfiguration,
+        ver: ProtocolVersion,
+    ) -> IgniteResult<HandshakeRsp> {
+        let req = HandshakeReq::new(ver, cfg.get_user(), cfg.get_password());
+        let req_data = req.pack();
+
+        conn.write_all(&req_data)
+            .rewrap_on_error("Can not send handshake request")?;
+
+        let rsp_data =
+            Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive handshake response")?;
+
+        Ok(HandshakeRsp::unpack(&rsp_data))
+    }
+
+    /// Try to negotiate connection parameters on a freshly open connection
+    fn negotiate_connection(
+        conn: &mut TcpStream,
+        cfg: &IgniteConfiguration,
+    ) -> Option<ProtocolVersion> {
+        for ver in SUPPORTED_VERSIONS.iter() {
+            let res = Self::handshake(conn, cfg, ver.clone())
+                .log_w_on_error(format!("Handshake failed with version {:?}", ver));
+
+            let resp = match res {
+                Some(r) => r,
+                None => continue,
+            };
+
+            match resp {
+                Response::Accept(_) => return Some(ver.clone()),
+                Response::Reject(rej) => warn!("Handshake failed with error: {}", rej.get_error()),
+            }
+        }
+
+        None
+    }
+
     /// Try establish connection with Ignite cluster
-    pub fn establish_connection(&mut self) -> IgniteResult<()> {
+    pub fn establish_connection(&self) -> IgniteResult<()> {
         let mut end_points = self.cfg.get_endpoints().to_owned();
 
         &mut end_points[..].shuffle(&mut thread_rng());
 
-        let resolved: Vec<ResolvedEndPoint> = end_points
-            .iter()
-            .filter_map(|x| {
-                x.resolve()
-                    .log_w_on_error(format!("Can not resolve host {}", x.host()))
-            })
-            .collect();
+        let resolved = end_points.iter().filter_map(|x| {
+            x.resolve()
+                .log_w_on_error(format!("Can not resolve host {}", x.host()))
+        });
 
         for end_point in resolved {
             for addr in end_point {
                 let res = Self::try_connect(&addr)
                     .log_w_on_error(format!("Can not connect to the host {}", addr));
 
-                let stream = match res {
+                let mut stream = match res {
                     Some(s) => s,
                     None => continue,
                 };
 
-                // TODO: Implement handshake here
+                let maybe_ver = Self::negotiate_connection(&mut stream, &self.cfg);
+
+                let ver = match maybe_ver {
+                    Some(v) => v,
+                    None => continue,
+                };
+
+                self.ver.set(ver);
 
                 // We do not care if the inner value is poisoned, as we are going to reassign it
                 // without reading.
-                let lock = self.conn.get_mut().unwrap_or_else(|e| e.into_inner());
+                let mut lock = self.conn.lock().unwrap_or_else(|e| e.into_inner());
 
                 *lock = Some(stream);
 

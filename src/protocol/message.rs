@@ -70,6 +70,11 @@ impl HandshakeReject {
     fn new(ver: ProtocolVersion, error: String) -> Self {
         HandshakeReject { ver, error }
     }
+
+    /// Get error
+    pub fn get_error(&self) -> &str {
+        &self.error
+    }
 }
 
 /// Handshake response.
