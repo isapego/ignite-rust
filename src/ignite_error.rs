@@ -72,18 +72,18 @@ pub type IgniteResult<T> = Result<T, IgniteError>;
 ///
 /// For internal use only.
 pub trait LogResult<R> {
-    fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R>;
-    fn log_e_on_error<S: Into<String>>(self, message: S) -> Option<R>;
-    fn log_w_on_error<S: Into<String>>(self, message: S) -> Option<R>;
-    fn log_i_on_error<S: Into<String>>(self, message: S) -> Option<R>;
-    fn log_d_on_error<S: Into<String>>(self, message: S) -> Option<R>;
+    fn log_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R>;
+    fn log_error_e<S: Into<String>>(self, message: S) -> Option<R>;
+    fn log_error_w<S: Into<String>>(self, message: S) -> Option<R>;
+    fn log_error_i<S: Into<String>>(self, message: S) -> Option<R>;
+    fn log_error_d<S: Into<String>>(self, message: S) -> Option<R>;
 }
 
 impl<R, E> LogResult<R> for Result<R, E>
 where
     E: Error,
 {
-    fn log_on_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R> {
+    fn log_error<S: Into<String>>(self, lvl: Level, message: S) -> Option<R> {
         match self {
             Ok(r) => Some(r),
             Err(ref e) => {
@@ -98,36 +98,36 @@ where
         }
     }
 
-    fn log_e_on_error<S: Into<String>>(self, message: S) -> Option<R> {
-        self.log_on_error(Level::Error, message)
+    fn log_error_e<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_error(Level::Error, message)
     }
 
-    fn log_w_on_error<S: Into<String>>(self, message: S) -> Option<R> {
-        self.log_on_error(Level::Warn, message)
+    fn log_error_w<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_error(Level::Warn, message)
     }
 
-    fn log_i_on_error<S: Into<String>>(self, message: S) -> Option<R> {
-        self.log_on_error(Level::Info, message)
+    fn log_error_i<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_error(Level::Info, message)
     }
 
-    fn log_d_on_error<S: Into<String>>(self, message: S) -> Option<R> {
-        self.log_on_error(Level::Debug, message)
+    fn log_error_d<S: Into<String>>(self, message: S) -> Option<R> {
+        self.log_error(Level::Debug, message)
     }
 }
 
 /// Trait that intended to be implemented for Result types, allowing for
 /// wrapping any results with IgniteResult.
 /// For internal use only.
-pub trait RewrapResult<R> {
-    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
+pub trait ChainResult<R> {
+    fn chain_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
 }
 
-impl<R, E> RewrapResult<R> for Result<R, E>
+impl<R, E> ChainResult<R> for Result<R, E>
 where
     E: Error + 'static,
 {
     /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
-    fn rewrap_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
+    fn chain_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
         match self {
             Ok(r) => Ok(r),
             Err(e) => Err(IgniteError::new_with_source(message, Box::new(e))),
@@ -139,7 +139,7 @@ where
 /// replacing any results with IgniteResult.
 /// For internal use only.
 pub trait ReplaceResult<R> {
-    fn replace_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
+    fn replace_error<S: Into<String>>(self, message: S) -> IgniteResult<R>;
 }
 
 impl<R, E> ReplaceResult<R> for Result<R, E>
@@ -147,7 +147,7 @@ where
     E: Error,
 {
     /// FIXME: Can cause overhead on hot (Ok) route of execution. Consider using macros instead.
-    fn replace_on_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
+    fn replace_error<S: Into<String>>(self, message: S) -> IgniteResult<R> {
         match self {
             Ok(r) => Ok(r),
             Err(_) => Err(IgniteError::new(message)),

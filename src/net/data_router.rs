@@ -8,7 +8,7 @@ use std::rc::Rc;
 use std::sync::Mutex;
 
 use crate::ignite_configuration::IgniteConfiguration;
-use crate::ignite_error::{IgniteError, IgniteResult, LogResult, ReplaceResult, RewrapResult};
+use crate::ignite_error::{IgniteError, IgniteResult, LogResult, ReplaceResult, ChainResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
 use crate::net::EndPoint;
@@ -47,14 +47,14 @@ impl DataRouter {
     /// Try establish connection with the address
     fn try_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
         let stream = TcpStream::connect(addr)
-            .rewrap_on_error(format!("Failed to connect to remote host {}", addr))?;
+            .chain_error(format!("Failed to connect to remote host {}", addr))?;
 
-        stream.set_nonblocking(true).rewrap_on_error(format!(
+        stream.set_nonblocking(true).chain_error(format!(
             "Failed to set connection to non-bloaking mode for host {}",
             addr
         ))?;
 
-        stream.set_nodelay(true).log_w_on_error(format!(
+        stream.set_nodelay(true).log_error_w(format!(
             "Failed to set connection to no-delay mode for host {}",
             addr
         ));
@@ -69,14 +69,14 @@ impl DataRouter {
         let mut len_buf = [0u8; 4];
 
         conn.read_exact(&mut len_buf)
-            .rewrap_on_error("Error while reading response length")?;
+            .chain_error("Error while reading response length")?;
 
         let len = utils::deserialize_i32(&len_buf);
 
         let mut buf = vec![0u8; len as usize].into_boxed_slice();
 
         conn.read_exact(&mut buf)
-            .rewrap_on_error("Error while reading response payload")?;
+            .chain_error("Error while reading response payload")?;
 
         Ok(buf)
     }
@@ -86,16 +86,16 @@ impl DataRouter {
         let mut lock = self
             .conn
             .lock()
-            .replace_on_error("Connection is probably poisoned")?;
+            .replace_error("Connection is probably poisoned")?;
 
         let mut conn = lock
             .as_mut()
             .expect("Should never be called on closed connection");
 
         conn.write_all(&req)
-            .rewrap_on_error("Can not send request")?;
+            .chain_error("Can not send request")?;
 
-        Self::receive_raw_rsp(&mut conn).rewrap_on_error("Can not receive response")
+        Self::receive_raw_rsp(&mut conn).chain_error("Can not receive response")
     }
 
     /// Send a request and get a response.
@@ -121,10 +121,10 @@ impl DataRouter {
         let req_data = req.pack();
 
         conn.write_all(&req_data)
-            .rewrap_on_error("Can not send handshake request")?;
+            .chain_error("Can not send handshake request")?;
 
         let rsp_data =
-            Self::receive_raw_rsp(conn).rewrap_on_error("Can not receive handshake response")?;
+            Self::receive_raw_rsp(conn).chain_error("Can not receive handshake response")?;
 
         Ok(HandshakeRsp::unpack(&rsp_data))
     }
@@ -136,7 +136,7 @@ impl DataRouter {
     ) -> Option<ProtocolVersion> {
         for ver in SUPPORTED_VERSIONS.iter() {
             let res = Self::handshake(conn, cfg, ver.clone())
-                .log_w_on_error(format!("Handshake failed with version {:?}", ver));
+                .log_error_w(format!("Handshake failed with version {:?}", ver));
 
             let resp = match res {
                 Some(r) => r,
@@ -160,13 +160,13 @@ impl DataRouter {
 
         let resolved = end_points.iter().filter_map(|x| {
             x.resolve()
-                .log_w_on_error(format!("Can not resolve host {}", x.host()))
+                .log_error_w(format!("Can not resolve host {}", x.host()))
         });
 
         for end_point in resolved {
             for addr in end_point {
                 let res = Self::try_connect(&addr)
-                    .log_w_on_error(format!("Can not connect to the host {}", addr));
+                    .log_error_w(format!("Can not connect to the host {}", addr));
 
                 let mut stream = match res {
                     Some(s) => s,

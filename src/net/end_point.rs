@@ -2,7 +2,7 @@ use std::convert::Into;
 use std::iter::{IntoIterator, Iterator};
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
-use crate::ignite_error::{IgniteError, IgniteResult, RewrapResult};
+use crate::ignite_error::{IgniteError, IgniteResult, ChainResult};
 
 pub const DEFAULT_PORT: u16 = 10800;
 
@@ -73,7 +73,7 @@ impl EndPoint {
 
         let port_begin = port_begin_s
             .parse::<u16>()
-            .rewrap_on_error("Parsing error: can not parse port")?;
+            .chain_error("Parsing error: can not parse port")?;
 
         if port_begin == 0 {
             return Err(IgniteError::new("Parsing error: TCP port can not be zero"));
@@ -86,7 +86,7 @@ impl EndPoint {
 
         let port_end = port_end_s
             .parse::<u16>()
-            .rewrap_on_error("Parsing error: can not parse port range")?;
+            .chain_error("Parsing error: can not parse port range")?;
 
         if port_begin > port_end {
             return Err(IgniteError::new(
@@ -108,7 +108,7 @@ impl EndPoint {
         let addr_tuple = (self.host.as_str(), self.port_begin);
         let iter = addr_tuple
             .to_socket_addrs()
-            .rewrap_on_error(format!("Failed to resolve host address: {}", self.host))?;
+            .chain_error(format!("Failed to resolve host address: {}", self.host))?;
 
         let ips = iter.map(|addr| addr.ip()).collect();
         Ok(ResolvedEndPoint {
