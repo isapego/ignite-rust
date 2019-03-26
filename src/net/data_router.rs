@@ -4,11 +4,10 @@ use std::borrow::BorrowMut;
 use std::cell::Cell;
 use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
-use std::rc::Rc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use crate::ignite_configuration::IgniteConfiguration;
-use crate::ignite_error::{IgniteError, IgniteResult, LogResult, ReplaceResult, ChainResult};
+use crate::ignite_error::{ChainResult, IgniteError, IgniteResult, LogResult, ReplaceResult};
 use crate::net::end_point::ResolvedEndPoint;
 use crate::net::utils;
 use crate::net::EndPoint;
@@ -29,14 +28,14 @@ const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_3_0];
 /// request.
 #[derive(Debug)]
 pub struct DataRouter {
-    cfg: Rc<IgniteConfiguration>,
+    cfg: Arc<IgniteConfiguration>,
     conn: Mutex<Option<TcpStream>>,
     ver: Cell<ProtocolVersion>,
 }
 
 impl DataRouter {
     /// Make new instance
-    pub fn new(cfg: Rc<IgniteConfiguration>) -> Self {
+    pub fn new(cfg: Arc<IgniteConfiguration>) -> Self {
         Self {
             cfg,
             conn: Mutex::new(None),
@@ -63,7 +62,7 @@ impl DataRouter {
     }
 
     /// Receive response in a raw byte array form
-    fn receive_raw_rsp(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
+    fn receive_rsp_raw(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
         use crate::protocol::utils;
 
         let mut len_buf = [0u8; 4];
@@ -92,10 +91,9 @@ impl DataRouter {
             .as_mut()
             .expect("Should never be called on closed connection");
 
-        conn.write_all(&req)
-            .chain_error("Can not send request")?;
+        conn.write_all(&req).chain_error("Can not send request")?;
 
-        Self::receive_raw_rsp(&mut conn).chain_error("Can not receive response")
+        Self::receive_rsp_raw(&mut conn).chain_error("Can not receive response")
     }
 
     /// Send a request and get a response.
@@ -124,7 +122,7 @@ impl DataRouter {
             .chain_error("Can not send handshake request")?;
 
         let rsp_data =
-            Self::receive_raw_rsp(conn).chain_error("Can not receive handshake response")?;
+            Self::receive_rsp_raw(conn).chain_error("Can not receive handshake response")?;
 
         Ok(HandshakeRsp::unpack(&rsp_data))
     }

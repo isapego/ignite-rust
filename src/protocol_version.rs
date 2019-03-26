@@ -1,7 +1,11 @@
 use crate::protocol::{InStream, OutStream, Readable, Writable};
 
 /// Version 1.3.0
-pub const VERSION_1_3_0: ProtocolVersion = ProtocolVersion{major:1, minor:3, maintaince:0};
+pub const VERSION_1_3_0: ProtocolVersion = ProtocolVersion {
+    major: 1,
+    minor: 3,
+    maintaince: 0,
+};
 
 #[derive(Copy, Clone, Debug)]
 pub struct ProtocolVersion {

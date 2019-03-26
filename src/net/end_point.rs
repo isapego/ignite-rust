@@ -2,7 +2,7 @@ use std::convert::Into;
 use std::iter::{IntoIterator, Iterator};
 use std::net::{IpAddr, SocketAddr, ToSocketAddrs};
 
-use crate::ignite_error::{IgniteError, IgniteResult, ChainResult};
+use crate::ignite_error::{ChainResult, IgniteError, IgniteResult};
 
 pub const DEFAULT_PORT: u16 = 10800;
 
