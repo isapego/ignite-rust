@@ -20,14 +20,37 @@ impl IgniteClient {
 
     /// Start new Ignite client.
     pub fn start(cfg: IgniteConfiguration) -> IgniteResult<IgniteClient> {
-        let cfg_rc = Arc::new(cfg);
-        let mut router = DataRouter::new(cfg_rc.clone());
+        let client = Self::new(cfg);
 
-        router.establish_connection()?;
+        client.router.establish_connection()?;
 
-        Ok(IgniteClient {
-            cfg: cfg_rc.clone(),
-            router: router,
-        })
+        Ok(client)
     }
+
+    /// Create new instance.
+    fn new(cfg0: IgniteConfiguration) -> IgniteClient {
+        let cfg = Arc::new(cfg0);
+        let mut router = DataRouter::new(cfg.clone());
+
+        IgniteClient {
+            cfg,
+            router,
+        }
+    }
+}
+
+
+#[test]
+fn test_ignite_client_sync() {
+    use std::thread;
+
+    let client = IgniteClient::new(IgniteConfiguration::new());
+
+    let arc = Arc::new(client);
+
+    let t0 = thread::spawn(|| {
+        arc.clone();
+    });
+
+    t0.join().unwrap();
 }
