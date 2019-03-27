@@ -27,7 +27,7 @@ impl GrowingBuffer {
 
     /// Make new instance
     pub fn with_capacity(cap: usize) -> Self {
-        let mut obj = Self::new();
+        let obj = Self::new();
         obj.reserve(cap);
         obj
     }
@@ -55,7 +55,7 @@ impl GrowingBuffer {
 
         debug_assert!(need_len <= MAX_CAPACITY, "Capacity overflow");
 
-        let mut new_len = cmp::max(
+        let new_len = cmp::max(
             MIN_CAPACITY,
             super::utils::round_to_pow2_u32(need_len as u32) as usize,
         );

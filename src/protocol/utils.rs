@@ -1,5 +1,3 @@
-use super::{InStream, Readable};
-
 /// Deserialize i32 from byte array
 pub fn deserialize_i32(data: &[u8; 4]) -> i32 {
     (data[0] as i32 & 0xFFi32)

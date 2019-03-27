@@ -30,12 +30,6 @@ impl<'a, T: Writable + 'a> Pack for T {
     }
 }
 
-/// Default reserved memory capacity
-const DEFAULT_CAPACITY: usize = 1024;
-
-/// Max capacity of the underlying memory
-const MAX_CAPACITY: usize = ::std::i32::MAX as usize;
-
 /// Writing stream abstraction
 pub struct OutStream {
     buffer: GrowingBuffer,

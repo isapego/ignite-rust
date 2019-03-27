@@ -32,7 +32,7 @@ fn ignite_client_start_with_config() {
     setup();
 
     let mut cfg = IgniteConfiguration::new();
-    cfg.set_endpoints("127.0.0.1:10800");
+    cfg.set_endpoints("127.0.0.1:10800").unwrap();
 
     IgniteClient::start(cfg).unwrap();
 }
@@ -42,7 +42,7 @@ fn ignite_client_create_cache() {
     setup();
 
     let mut cfg = IgniteConfiguration::new();
-    cfg.set_endpoints("127.0.0.1:10800");
+    cfg.set_endpoints("127.0.0.1:10800").unwrap();
 
     let mut _client = IgniteClient::start(cfg).unwrap();
 
