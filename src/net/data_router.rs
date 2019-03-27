@@ -38,7 +38,14 @@ impl DataRouter {
         // We have already ensured that connection is ready, so we can safely unwrap here.
         let conn = lock.as_mut().unwrap();
 
-        conn.sync_message::<Req, Resp>(req)
+        let res = conn.sync_message::<Req, Resp>(req);
+
+        if res.is_err() {
+            // Connection failure. Resetting.
+           *lock = None;
+        }
+
+        res
     }
 
     /// Try connect to a random node in a cluster.
