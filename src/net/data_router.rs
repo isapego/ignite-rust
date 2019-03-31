@@ -48,34 +48,6 @@ impl DataRouter {
         res
     }
 
-    /// Try connect to a random node in a cluster.
-    fn connect_random_node(cfg: &IgniteConfiguration) -> IgniteResult<DataChannel> {
-        let mut end_points = cfg.get_endpoints().to_owned();
-
-        &mut end_points[..].shuffle(&mut thread_rng());
-
-        let resolved = end_points.iter().filter_map(|x| {
-            x.resolve()
-                .log_error_w(format!("Can not resolve host {}", x.host()))
-        });
-
-        for end_point in resolved {
-            for addr in end_point {
-                let maybe_channel = DataChannel::connect(&addr, cfg)
-                    .log_error_w(format!("Can not connect to the host {}", addr));
-
-                let channel = match maybe_channel {
-                    Some(s) => s,
-                    None => continue,
-                };
-
-                return Ok(channel);
-            }
-        }
-
-        Err(IgniteError::new("Can not connect to any host"))
-    }
-
     /// Ensure that connection with cluster is established.
     fn ensure_connected(&self) -> IgniteResult<MutexGuard<Option<DataChannel>>> {
         // We do not care if the inner value is poisoned, as we are going to reassign it
@@ -94,7 +66,7 @@ impl DataRouter {
         };
 
         if reconnect {
-            let channel = Self::connect_random_node(&self.cfg)?;
+            let channel = connect_random_node(&self.cfg)?;
 
             *lock = Some(channel);
         }
@@ -107,4 +79,32 @@ impl DataRouter {
 
         Ok(())
     }
+}
+
+/// Try connect to a random node in a cluster.
+fn connect_random_node(cfg: &IgniteConfiguration) -> IgniteResult<DataChannel> {
+    let mut end_points = cfg.get_endpoints().to_owned();
+
+    &mut end_points[..].shuffle(&mut thread_rng());
+
+    let resolved = end_points.iter().filter_map(|x| {
+        x.resolve()
+            .log_error_w(format!("Can not resolve host {}", x.host()))
+    });
+
+    for end_point in resolved {
+        for addr in end_point {
+            let maybe_channel = DataChannel::connect(&addr, cfg)
+                .log_error_w(format!("Can not connect to the host {}", addr));
+
+            let channel = match maybe_channel {
+                Some(s) => s,
+                None => continue,
+            };
+
+            return Ok(channel);
+        }
+    }
+
+    Err(IgniteError::new("Can not connect to any host"))
 }

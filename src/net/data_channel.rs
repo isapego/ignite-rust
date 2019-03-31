@@ -23,94 +23,14 @@ impl DataChannel {
         Self { ver, conn }
     }
 
-    /// Establish TCP connection with the address
-    fn tcp_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
-        let stream = TcpStream::connect(addr)
-            .chain_error(format!("Failed to connect to remote host {}", addr))?;
-
-        stream.set_nonblocking(true).chain_error(format!(
-            "Failed to set connection to non-blocking mode for host {}",
-            addr
-        ))?;
-
-        stream.set_nodelay(true).log_error_w(format!(
-            "Failed to set connection to no-delay mode for host {}",
-            addr
-        ));
-
-        Ok(stream)
-    }
-
-    /// Try to negotiate connection version of a new connection
-    fn negotiate_protocol_version(
-        conn: &mut TcpStream,
-        cfg: &IgniteConfiguration,
-    ) -> IgniteResult<ProtocolVersion> {
-        for ver in SUPPORTED_VERSIONS.iter() {
-            let req = HandshakeReq::new(ver.clone(), cfg.get_user(), cfg.get_password());
-
-            let res = Self::sync_message_conn::<HandshakeReq, HandshakeRsp>(conn, req)
-                .log_error_w(format!("Handshake failed with version {:?}", ver));
-
-            let resp = match res {
-                Some(r) => r,
-                None => continue,
-            };
-
-            match resp {
-                Response::Accept(_) => return Ok(ver.clone()),
-                Response::Reject(rej) => warn!("Handshake failed with error: {}", rej.get_error()),
-            }
-        }
-
-        Err(IgniteError::new(
-            "Failed to complete handshake with the host",
-        ))
-    }
-
     /// Try create new data channel between host and the node with a given address.
     pub fn connect(addr: &SocketAddr, cfg: &IgniteConfiguration) -> IgniteResult<Self> {
-        let mut conn = Self::tcp_connect(&addr)
+        let mut conn = tcp_connect(&addr)
             .chain_error(format!("Can not connect to the host {}", addr))?;
 
-        let ver = Self::negotiate_protocol_version(&mut conn, cfg)?;
+        let ver = negotiate_protocol_version(&mut conn, cfg)?;
 
         Ok(Self::new(ver, conn))
-    }
-
-    /// Receive response in a raw byte array form
-    fn receive_rsp_raw(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
-        use crate::protocol::utils;
-
-        let mut len_buf = [0u8; 4];
-
-        conn.read_exact(&mut len_buf)
-            .chain_error("Error while reading response length")?;
-
-        let len = utils::deserialize_i32(&len_buf);
-
-        let mut buf = vec![0u8; len as usize].into_boxed_slice();
-
-        conn.read_exact(&mut buf)
-            .chain_error("Error while reading response payload")?;
-
-        Ok(buf)
-    }
-
-    /// Send a request and get a response.
-    fn sync_message_conn<Req, Resp>(conn: &mut TcpStream, req: Req) -> IgniteResult<Resp::Item>
-    where
-        Req: Pack,
-        Resp: Unpack,
-    {
-        let req_data = req.pack();
-
-        conn.write_all(&req_data)
-            .chain_error("Can not send request")?;
-
-        let rsp_data = Self::receive_rsp_raw(conn).chain_error("Can not receive response")?;
-
-        Ok(Resp::unpack(&rsp_data))
     }
 
     /// Send a request and get a response.
@@ -119,6 +39,86 @@ impl DataChannel {
         Req: Pack,
         Resp: Unpack,
     {
-        Self::sync_message_conn::<Req, Resp>(&mut self.conn, req)
+        sync_message_conn::<Req, Resp>(&mut self.conn, req)
     }
+}
+
+/// Establish TCP connection with the address
+fn tcp_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
+    let stream = TcpStream::connect(addr)
+        .chain_error(format!("Failed to connect to remote host {}", addr))?;
+
+    stream.set_nonblocking(true).chain_error(format!(
+        "Failed to set connection to non-blocking mode for host {}",
+        addr
+    ))?;
+
+    stream.set_nodelay(true).log_error_w(format!(
+        "Failed to set connection to no-delay mode for host {}",
+        addr
+    ));
+
+    Ok(stream)
+}
+
+/// Try to negotiate connection version of a new connection
+fn negotiate_protocol_version(
+    conn: &mut TcpStream,
+    cfg: &IgniteConfiguration,
+) -> IgniteResult<ProtocolVersion> {
+    for ver in SUPPORTED_VERSIONS.iter() {
+        let req = HandshakeReq::new(ver.clone(), cfg.get_user(), cfg.get_password());
+
+        let res = sync_message_conn::<HandshakeReq, HandshakeRsp>(conn, req)
+            .log_error_w(format!("Handshake failed with version {:?}", ver));
+
+        let resp = match res {
+            Some(r) => r,
+            None => continue,
+        };
+
+        match resp {
+            Response::Accept(_) => return Ok(ver.clone()),
+            Response::Reject(rej) => warn!("Handshake failed with error: {}", rej.get_error()),
+        }
+    }
+
+    Err(IgniteError::new(
+        "Failed to complete handshake with the host",
+    ))
+}
+
+/// Receive response in a raw byte array form
+fn receive_rsp_raw(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
+    use crate::protocol::utils;
+
+    let mut len_buf = [0u8; 4];
+
+    conn.read_exact(&mut len_buf)
+        .chain_error("Error while reading response length")?;
+
+    let len = utils::deserialize_i32(&len_buf);
+
+    let mut buf = vec![0u8; len as usize].into_boxed_slice();
+
+    conn.read_exact(&mut buf)
+        .chain_error("Error while reading response payload")?;
+
+    Ok(buf)
+}
+
+/// Send a request and get a response.
+fn sync_message_conn<Req, Resp>(conn: &mut TcpStream, req: Req) -> IgniteResult<Resp::Item>
+    where
+        Req: Pack,
+        Resp: Unpack,
+{
+    let req_data = req.pack();
+
+    conn.write_all(&req_data)
+        .chain_error("Can not send request")?;
+
+    let rsp_data = receive_rsp_raw(conn).chain_error("Can not receive response")?;
+
+    Ok(Resp::unpack(&rsp_data))
 }
