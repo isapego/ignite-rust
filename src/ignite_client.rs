@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use super::ignite_configuration::IgniteConfiguration;
+use super::client_configuration::ClientConfiguration;
 use super::ignite_error::IgniteResult;
 use super::net::DataRouter;
 
@@ -8,18 +8,18 @@ use super::net::DataRouter;
 /// Main entry point for the Ignite Rust thin client API.
 #[derive(Debug)]
 pub struct IgniteClient {
-    cfg: Arc<IgniteConfiguration>,
+    cfg: Arc<ClientConfiguration>,
     router: DataRouter,
 }
 
 impl IgniteClient {
     /// Start Ignite client with default configuration.
     pub fn start_default() -> IgniteResult<IgniteClient> {
-        Self::start(IgniteConfiguration::new())
+        Self::start(ClientConfiguration::new())
     }
 
     /// Start new Ignite client.
-    pub fn start(cfg: IgniteConfiguration) -> IgniteResult<IgniteClient> {
+    pub fn start(cfg: ClientConfiguration) -> IgniteResult<IgniteClient> {
         let client = Self::new(cfg);
 
         client.router.establish_connection()?;
@@ -28,7 +28,7 @@ impl IgniteClient {
     }
 
     /// Create new instance.
-    fn new(cfg0: IgniteConfiguration) -> IgniteClient {
+    fn new(cfg0: ClientConfiguration) -> IgniteClient {
         let cfg = Arc::new(cfg0);
         let router = DataRouter::new(cfg.clone());
 
@@ -40,7 +40,7 @@ impl IgniteClient {
 fn test_ignite_client_sync() {
     use std::thread;
 
-    let client = IgniteClient::new(IgniteConfiguration::new());
+    let client = IgniteClient::new(ClientConfiguration::new());
 
     let arc = Arc::new(client);
 

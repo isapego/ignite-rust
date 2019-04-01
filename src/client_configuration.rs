@@ -4,16 +4,16 @@ use crate::IgniteResult;
 use std::convert::Into;
 
 #[derive(Debug)]
-pub struct IgniteConfiguration {
+pub struct ClientConfiguration {
     end_points: Vec<EndPoint>,
     user: String,
     pass: String,
 }
 
-impl IgniteConfiguration {
+impl ClientConfiguration {
     /// Create new configuration with default parameters.
-    pub fn new() -> IgniteConfiguration {
-        IgniteConfiguration {
+    pub fn new() -> ClientConfiguration {
+        ClientConfiguration {
             end_points: Vec::new(),
             user: String::new(),
             pass: String::new(),
@@ -30,9 +30,9 @@ impl IgniteConfiguration {
     ///
     /// # Examples
     /// ```
-    /// use ignite_rust::IgniteConfiguration;
+    /// use ignite_rust::ClientConfiguration;
     ///
-    /// let mut cfg = IgniteConfiguration::new();
+    /// let mut cfg = ClientConfiguration::new();
     /// cfg.set_endpoints("127.0.0.1");
     /// cfg.set_endpoints("127.0.0.1:10800");
     /// cfg.set_endpoints("example.com");
@@ -61,13 +61,13 @@ impl IgniteConfiguration {
 }
 
 #[test]
-fn ignite_configuration_new() {
-    IgniteConfiguration::new();
+fn client_configuration_new() {
+    ClientConfiguration::new();
 }
 
 #[test]
-fn ignite_configuration_endpoints() {
-    let mut cfg = IgniteConfiguration::new();
+fn client_configuration_endpoints() {
+    let mut cfg = ClientConfiguration::new();
 
     let set = "127.0.0.1:10800";
 

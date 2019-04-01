@@ -2,7 +2,7 @@ use rand::seq::SliceRandom;
 use rand::thread_rng;
 use std::sync::{Arc, Mutex, MutexGuard};
 
-use crate::ignite_configuration::IgniteConfiguration;
+use crate::client_configuration::ClientConfiguration;
 use crate::ignite_error::{IgniteError, IgniteResult, LogResult};
 use crate::net::DataChannel;
 use crate::protocol::{Pack, Unpack};
@@ -14,13 +14,13 @@ use crate::protocol::{Pack, Unpack};
 /// request.
 #[derive(Debug)]
 pub struct DataRouter {
-    cfg: Arc<IgniteConfiguration>,
+    cfg: Arc<ClientConfiguration>,
     channel: Mutex<Option<DataChannel>>,
 }
 
 impl DataRouter {
     /// Make new instance.
-    pub fn new(cfg: Arc<IgniteConfiguration>) -> Self {
+    pub fn new(cfg: Arc<ClientConfiguration>) -> Self {
         Self {
             cfg,
             channel: Mutex::new(None),
@@ -82,7 +82,7 @@ impl DataRouter {
 }
 
 /// Try connect to a random node in a cluster.
-fn connect_random_node(cfg: &IgniteConfiguration) -> IgniteResult<DataChannel> {
+fn connect_random_node(cfg: &ClientConfiguration) -> IgniteResult<DataChannel> {
     let mut end_points = cfg.get_endpoints().to_owned();
 
     &mut end_points[..].shuffle(&mut thread_rng());

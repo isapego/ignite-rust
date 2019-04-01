@@ -5,7 +5,7 @@ use crate::ignite_error::{ChainResult, IgniteResult, LogResult};
 use crate::protocol::message::{HandshakeReq, HandshakeRsp, Response};
 use crate::protocol::{Pack, Unpack};
 use crate::protocol_version::{ProtocolVersion, VERSION_1_3_0};
-use crate::{IgniteConfiguration, IgniteError};
+use crate::{ClientConfiguration, IgniteError};
 
 /// Versions supported by the client
 const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_3_0];
@@ -24,7 +24,7 @@ impl DataChannel {
     }
 
     /// Try create new data channel between host and the node with a given address.
-    pub fn connect(addr: &SocketAddr, cfg: &IgniteConfiguration) -> IgniteResult<Self> {
+    pub fn connect(addr: &SocketAddr, cfg: &ClientConfiguration) -> IgniteResult<Self> {
         let mut conn = tcp_connect(&addr)
             .chain_error(format!("Can not connect to the host {}", addr))?;
 
@@ -64,7 +64,7 @@ fn tcp_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
 /// Try to negotiate connection version of a new connection
 fn negotiate_protocol_version(
     conn: &mut TcpStream,
-    cfg: &IgniteConfiguration,
+    cfg: &ClientConfiguration,
 ) -> IgniteResult<ProtocolVersion> {
     for ver in SUPPORTED_VERSIONS.iter() {
         let req = HandshakeReq::new(ver.clone(), cfg.get_user(), cfg.get_password());
