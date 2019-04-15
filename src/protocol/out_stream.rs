@@ -248,7 +248,7 @@ impl Drop for ShouldNotDrop {
         // Panic results in unwind and subsequent call to drop(), so we need to
         // ensure here we are not currently panicking, to avoid aborting of the
         // whole process.
-        assert!(!thread::panicking(),
+        assert!(thread::panicking(),
             "Fatal error: Reserved value was not set properly. Panicking to prevent undefined behaviour");
     }
 }
@@ -274,7 +274,7 @@ impl<'a> ReservedI32<'a> {
         unsafe {
             self.stream.unsafe_write_i32_to_pos(self.pos, value);
 
-            mem::forget(self);
+            mem::forget(self.snd);
         }
     }
 }
@@ -418,19 +418,11 @@ fn test_reserve_i32() {
 fn test_reserve_i32_panic() {
     let out = OutStream::new();
 
-    out.write_i32(0x11223344);
-
     {
-        let _reserved = out.reserve_i32();
+        let reserved = out.reserve_i32();
     }
 
     let mem = out.into_memory();
-
-    assert_eq!(mem.len(), 4);
-    assert_eq!(mem[0], 0x44);
-    assert_eq!(mem[1], 0x33);
-    assert_eq!(mem[2], 0x22);
-    assert_eq!(mem[3], 0x11);
 }
 
 #[test]
