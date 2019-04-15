@@ -11,3 +11,21 @@ paste = "0.1"
 
 [dev-dependencies]
 env_logger = "0.6.0"
+
+[profile.test]
+opt-level = 0
+debug = 2
+rpath = false
+lto = false
+debug-assertions = true
+codegen-units = 16
+incremental = true
+overflow-checks = true
+
+[features]
+test = []
+
+[[bin]]
+name = "test_node_launcher"
+path = "bin/test_node_launcher.rs"
+required-features = ["test"]
