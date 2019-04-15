@@ -25,6 +25,8 @@ impl DataChannel {
 
     /// Try create new data channel between host and the node with a given address.
     pub fn connect(addr: &SocketAddr, cfg: &ClientConfiguration) -> IgniteResult<Self> {
+        debug!("Trying to connect to host: {}", addr);
+
         let mut conn = tcp_connect(&addr)
             .chain_error(format!("Can not connect to the host {}", addr))?;
 

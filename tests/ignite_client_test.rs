@@ -21,13 +21,6 @@ fn make_unique_name() -> String {
 }
 
 #[test]
-fn ignite_client_start_default() {
-    setup();
-
-    IgniteClient::start_default().unwrap();
-}
-
-#[test]
 fn ignite_client_start_with_config() {
     setup();
 

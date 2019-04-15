@@ -3,6 +3,7 @@ use std::sync::Arc;
 use super::client_configuration::ClientConfiguration;
 use super::ignite_error::IgniteResult;
 use super::net::DataRouter;
+use crate::IgniteError;
 
 /// Ignite client
 /// Main entry point for the Ignite Rust thin client API.
@@ -13,18 +14,24 @@ pub struct IgniteClient {
 }
 
 impl IgniteClient {
-    /// Start Ignite client with default configuration.
-    pub fn start_default() -> IgniteResult<IgniteClient> {
-        Self::start(ClientConfiguration::new())
-    }
-
     /// Start new Ignite client.
     pub fn start(cfg: ClientConfiguration) -> IgniteResult<IgniteClient> {
+        Self::validate_cfg(&cfg)?;
+
         let client = Self::new(cfg);
 
         client.router.establish_connection()?;
 
         Ok(client)
+    }
+
+    /// Validate configuration
+    fn validate_cfg(cfg: &ClientConfiguration) -> IgniteResult<()> {
+        if cfg.get_endpoints().is_empty() {
+            return Err(IgniteError::new("No endpoints of nodes are specified"));
+        }
+
+        Ok(())
     }
 
     /// Create new instance.

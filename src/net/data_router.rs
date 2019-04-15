@@ -56,6 +56,7 @@ impl DataRouter {
 
         let (mut lock, reconnect) = match res {
             Ok(guard) => {
+                info!("Connection is not established. Connecting");
                 let empty = guard.is_none();
                 (guard, empty)
             },
@@ -66,6 +67,7 @@ impl DataRouter {
         };
 
         if reconnect {
+            debug!("Re-connecting to a random node");
             let channel = connect_random_node(&self.cfg)?;
 
             *lock = Some(channel);
@@ -86,6 +88,8 @@ fn connect_random_node(cfg: &ClientConfiguration) -> IgniteResult<DataChannel> {
     let mut end_points = cfg.get_endpoints().to_owned();
 
     &mut end_points[..].shuffle(&mut thread_rng());
+
+    debug!("End points after shuffle: {:?}", end_points);
 
     let resolved = end_points.iter().filter_map(|x| {
         x.resolve()
