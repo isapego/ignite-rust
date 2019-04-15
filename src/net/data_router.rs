@@ -110,5 +110,5 @@ fn connect_random_node(cfg: &ClientConfiguration) -> IgniteResult<DataChannel> {
         }
     }
 
-    Err(IgniteError::new("Can not connect to any host"))
+    Err(IgniteError::new("Can not connect to any host. See logs for details"))
 }

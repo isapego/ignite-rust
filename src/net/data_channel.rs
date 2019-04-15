@@ -50,10 +50,10 @@ fn tcp_connect(addr: &SocketAddr) -> IgniteResult<TcpStream> {
     let stream = TcpStream::connect(addr)
         .chain_error(format!("Failed to connect to remote host {}", addr))?;
 
-    stream.set_nonblocking(true).chain_error(format!(
-        "Failed to set connection to non-blocking mode for host {}",
-        addr
-    ))?;
+//    stream.set_nonblocking(true).chain_error(format!(
+//        "Failed to set connection to non-blocking mode for host {}",
+//        addr
+//    ))?;
 
     stream.set_nodelay(true).log_error_w(format!(
         "Failed to set connection to no-delay mode for host {}",
