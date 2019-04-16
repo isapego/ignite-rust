@@ -1,5 +1,6 @@
 use std::borrow::Cow;
 use std::cell::Cell;
+use crate::protocol::header;
 
 // Trait for a type that can be read from a stream
 pub trait Readable {
@@ -91,7 +92,26 @@ impl<'a> InStream<'a> {
     }
 
     /// Read string
-    pub fn read_str(&self) -> Cow<'a, str> {
+    pub fn read_str(&self) -> Option<Cow<'a, str>> {
+        let hdr = self.read_i8();
+
+        match hdr {
+            header::NULL => None,
+            header::STRING => {
+                let len = self.read_i32();
+
+                let pos = self.pos.get();
+
+                self.inc_pos(4 + len as usize);
+
+                Some(String::from_utf8_lossy(&self.mem[pos..pos + len as usize]))
+            },
+            _ => panic!("Unexpected header: {}", hdr),
+        }
+    }
+
+    /// Read string
+    pub fn read_str_raw(&self) -> Cow<'a, str> {
         let len = self.read_i32();
 
         let pos = self.pos.get();

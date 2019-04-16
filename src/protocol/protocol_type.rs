@@ -68,10 +68,10 @@ impl<'a> ProtocolType for &'a str {
     const HEADER: i8 = header::STRING;
 
     fn write_payload(&self, stream: &OutStream) {
-        stream.write_str(*self);
+        stream.write_str_raw(*self);
     }
 
     fn read_payload(stream: &InStream) -> Self::Item {
-        stream.read_str().into()
+        stream.read_str_raw().into()
     }
 }

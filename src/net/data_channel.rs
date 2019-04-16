@@ -4,11 +4,11 @@ use std::net::{SocketAddr, TcpStream};
 use crate::ignite_error::{ChainResult, IgniteResult, LogResult};
 use crate::protocol::message::{HandshakeReq, HandshakeRsp, Response};
 use crate::protocol::{Pack, Unpack};
-use crate::protocol_version::{ProtocolVersion, VERSION_1_3_0};
+use crate::protocol_version::{ProtocolVersion, VERSION_1_2_0};
 use crate::{ClientConfiguration, IgniteError};
 
 /// Versions supported by the client
-const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_3_0];
+const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_2_0];
 
 /// Represents a single channel to a node of the cluster.
 #[derive(Debug)]

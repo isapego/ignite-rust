@@ -1,9 +1,9 @@
 use crate::protocol::{InStream, OutStream, Readable, Writable};
 
-/// Version 1.3.0
-pub const VERSION_1_3_0: ProtocolVersion = ProtocolVersion {
+/// Version 1.2.0
+pub const VERSION_1_2_0: ProtocolVersion = ProtocolVersion {
     major: 1,
-    minor: 3,
+    minor: 2,
     maintaince: 0,
 };
 

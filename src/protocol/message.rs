@@ -91,7 +91,7 @@ impl Readable for HandshakeRsp {
         }
 
         let ver = ProtocolVersion::read(stream);
-        let err = stream.read_str();
+        let err = stream.read_str().unwrap_or_default();
 
         Response::Reject(HandshakeReject::new(ver, err.into_owned()))
     }
