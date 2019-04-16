@@ -4,6 +4,7 @@ use std::ptr;
 use std::thread;
 
 use super::growing_buffer::GrowingBuffer;
+use crate::protocol::header;
 
 /// Trait for a type that can be written to a stream
 pub trait Writable {
@@ -109,22 +110,34 @@ impl OutStream {
     }
 
     /// Write string value to a stream
-    pub fn write_str<'a, S: Into<&'a str>>(&self, value: S) {
-        let value0 = value.into().as_bytes();
+    pub fn write_str<S: AsRef<str>>(&self, value: S) {
+        let value0 = value.as_ref().as_bytes();
 
-        self.write_u8_array(value0);
+        self.ensure_capacity(1 + 4 + value0.len());
+
+        // It is safe as safety check was performed before
+        unsafe {
+            self.unsafe_write_i8(header::STRING);
+            self.unsafe_write_u8_array(value0);
+        }
+    }
+
+    /// Write string value to a stream
+    pub fn write_str_raw<S: AsRef<str>>(&self, value: S) {
+        let value0 = value.as_ref().as_bytes();
+
+        self.write_u8_array_raw(value0);
     }
 
     /// Write bytes to a stream
-    pub fn write_u8_array<'a, A: Into<&'a [u8]>>(&self, value: A) {
-        let value0 = value.into();
+    pub fn write_u8_array_raw<A: AsRef<[u8]>>(&self, value: A) {
+        let value0 = value.as_ref();
 
         self.ensure_capacity(4 + value0.len());
 
         // It is safe as safety check was performed before
         unsafe {
-            self.unsafe_write_i32(value0.len() as i32);
-            self.unsafe_write_bytes(value0);
+            self.unsafe_write_u8_array(value0);
         }
     }
 
@@ -201,6 +214,12 @@ impl OutStream {
         *dst.add(7) = (value >> 56 & 0xFF) as u8;
 
         self.add_pos(8);
+    }
+
+    /// Write bytes to a stream without checks
+    unsafe fn unsafe_write_u8_array(&self, array: &[u8]) {
+        self.unsafe_write_i32(array.len() as i32);
+        self.unsafe_write_bytes(array);
     }
 
     /// Write bytes without capacity checks
@@ -358,12 +377,12 @@ fn test_write_i64() {
 }
 
 #[test]
-fn test_write_str() {
+fn test_write_str_raw() {
     let out = OutStream::new();
 
     let value = "Hello World!";
 
-    out.write_str(value);
+    out.write_str_raw(value);
 
     let mem = out.into_memory();
 
@@ -386,6 +405,39 @@ fn test_write_str() {
     assert_eq!(mem[13], 'l' as u8);
     assert_eq!(mem[14], 'd' as u8);
     assert_eq!(mem[15], '!' as u8);
+}
+
+#[test]
+fn test_write_str() {
+    let out = OutStream::new();
+
+    let value = "Hello World!";
+
+    out.write_str(value);
+
+    let mem = out.into_memory();
+
+    assert_eq!(mem.len(), 1 + 4 + value.len());
+
+    assert_eq!(mem[0], header::STRING as u8);
+
+    assert_eq!(mem[1], value.len() as u8);
+    assert_eq!(mem[2], 0);
+    assert_eq!(mem[3], 0);
+    assert_eq!(mem[4], 0);
+
+    assert_eq!(mem[5], 'H' as u8);
+    assert_eq!(mem[6], 'e' as u8);
+    assert_eq!(mem[7], 'l' as u8);
+    assert_eq!(mem[8], 'l' as u8);
+    assert_eq!(mem[9], 'o' as u8);
+    assert_eq!(mem[10], ' ' as u8);
+    assert_eq!(mem[11], 'W' as u8);
+    assert_eq!(mem[12], 'o' as u8);
+    assert_eq!(mem[13], 'r' as u8);
+    assert_eq!(mem[14], 'l' as u8);
+    assert_eq!(mem[15], 'd' as u8);
+    assert_eq!(mem[16], '!' as u8);
 }
 
 #[test]
@@ -432,7 +484,7 @@ fn test_reserve_len() {
     let reserved = out.reserve_len();
 
     out.write_i32(0x11223344);
-    out.write_str("Lorem ipsum");
+    out.write_str_raw("Lorem ipsum");
 
     reserved.set();
 
