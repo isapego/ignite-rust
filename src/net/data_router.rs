@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use crate::client_configuration::ClientConfiguration;
 use crate::ignite_error::{IgniteError, IgniteResult, LogResult};
 use crate::net::DataChannel;
-use crate::protocol::{Pack, Unpack};
+use crate::protocol::{Readable, Writable};
 
 /// Component which is responsible for establishing and maintaining reliable
 /// connection link to the Ignite cluster.
@@ -30,8 +30,8 @@ impl DataRouter {
     /// Send request and get a response synchronously.
     pub fn sync_message<Req, Resp>(&self, req: Req) -> IgniteResult<Resp::Item>
     where
-        Req: Pack,
-        Resp: Unpack,
+        Req: Writable,
+        Resp: Readable,
     {
         let mut lock = self.ensure_connected()?;
 

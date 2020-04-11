@@ -3,9 +3,9 @@ use std::net::{SocketAddr, TcpStream};
 
 use crate::ignite_error::{ChainResult, IgniteResult, LogResult};
 use crate::protocol::message::{HandshakeReq, HandshakeRsp, Response};
-use crate::protocol::{Pack, Unpack};
 use crate::protocol_version::{ProtocolVersion, VERSION_1_2_0};
 use crate::{ClientConfiguration, IgniteError};
+use crate::protocol::{Writable, Readable, InStream, OutStream};
 
 /// Versions supported by the client
 const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_2_0];
@@ -38,8 +38,8 @@ impl DataChannel {
     /// Send a request and get a response.
     pub fn sync_message<Req, Resp>(&mut self, req: Req) -> IgniteResult<Resp::Item>
     where
-        Req: Pack,
-        Resp: Unpack,
+        Req: Writable,
+        Resp: Readable,
     {
         sync_message_conn::<Req, Resp>(&mut self.conn, req)
     }
@@ -112,15 +112,34 @@ fn receive_rsp_raw(conn: &mut TcpStream) -> IgniteResult<Box<[u8]>> {
 /// Send a request and get a response.
 fn sync_message_conn<Req, Resp>(conn: &mut TcpStream, req: Req) -> IgniteResult<Resp::Item>
     where
-        Req: Pack,
-        Resp: Unpack,
+        Req: Writable,
+        Resp: Readable,
 {
-    let req_data = req.pack();
+    let req_data = pack_writable(&req);
 
     conn.write_all(&req_data)
         .chain_error("Can not send request")?;
 
     let rsp_data = receive_rsp_raw(conn).chain_error("Can not receive response")?;
 
-    Ok(Resp::unpack(&rsp_data))
+    Ok(unpack_readable::<Resp::Item, Resp>(&rsp_data))
+}
+
+fn unpack_readable<I, T: Readable<Item = I>>(data: &[u8]) -> I {
+    let stream = InStream::new(data);
+
+    T::read(&stream)
+}
+
+/// Pack any Writable value into boxed slice
+fn pack_writable(req: &dyn Writable) -> Box<[u8]> {
+    let stream = OutStream::new();
+
+    let len = stream.reserve_len();
+
+    req.write(&stream);
+
+    len.set();
+
+    stream.into_memory()
 }

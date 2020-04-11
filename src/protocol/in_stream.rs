@@ -9,23 +9,6 @@ pub trait Readable {
     fn read(stream: &InStream) -> Self::Item;
 }
 
-pub trait Unpack {
-    type Item: Sized;
-
-    fn unpack(data: &[u8]) -> Self::Item;
-}
-
-impl<'a, I, T: Readable<Item = I> + 'a> Unpack for T {
-    type Item = T::Item;
-
-    /// Deserialize to a value of a certain type
-    fn unpack(data: &[u8]) -> Self::Item {
-        let stream = InStream::new(data);
-
-        T::read(&stream)
-    }
-}
-
 pub struct InStream<'a> {
     mem: &'a [u8],
     pos: Cell<usize>,
