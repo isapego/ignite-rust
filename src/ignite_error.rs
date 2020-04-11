@@ -12,7 +12,7 @@ struct IgniteErrorContents {
 
 impl IgniteErrorContents {
     /// Make new instance
-    fn new(message: String, cause: Option<Box<Error>>) -> IgniteErrorContents {
+    fn new(message: String, cause: Option<Box<dyn Error>>) -> IgniteErrorContents {
         IgniteErrorContents { message, cause }
     }
 }
@@ -32,7 +32,7 @@ impl IgniteError {
     }
 
     /// Create new IgniteError instance with cause
-    pub fn new_with_source<S: Into<String>>(message: S, cause: Box<Error>) -> IgniteError {
+    pub fn new_with_source<S: Into<String>>(message: S, cause: Box<dyn Error>) -> IgniteError {
         IgniteError {
             err: Box::new(IgniteErrorContents::new(message.into(), Some(cause))),
         }
@@ -42,7 +42,7 @@ impl IgniteError {
 impl From<std::io::Error> for IgniteError {
     /// Convert from error.
     fn from(err: std::io::Error) -> Self {
-        Self::new_with_source(err.description().to_owned(), Box::new(err))
+        Self::new_with_source(err.to_string(), Box::new(err))
     }
 }
 

@@ -1,5 +1,5 @@
 use bytes::{Bytes, BufMut, BytesMut};
-use tokio_util::codec::{Encoder, Decoder};
+use tokio_util::codec::Encoder;
 
 use crate::IgniteError;
 

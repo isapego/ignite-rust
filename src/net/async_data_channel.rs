@@ -3,14 +3,17 @@ use std::net::SocketAddr;
 use tokio::net::TcpStream;
 // use tokio::net::tcp::{ReadHalf, WriteHalf};
 use tokio::io::{ReadHalf, WriteHalf};
-use tokio::sync::Mutex;
-use tokio_util::codec::{FramedWrite, FramedRead};
+// use tokio::sync::Mutex;
+// use tokio_util::codec::{FramedWrite, FramedRead};
 
-use futures::{AsyncWrite, AsyncRead};
+// use futures::{AsyncWrite, AsyncRead};
 
 use crate::protocol_version::{ProtocolVersion, VERSION_1_2_0};
-use crate::{IgniteError, ClientConfiguration};
-use crate::ignite_error::{ChainResult, IgniteResult, LogResult};
+// use crate::IgniteError;
+use crate::ClientConfiguration;
+use crate::ignite_error::IgniteResult;
+use crate::ignite_error::ChainResult;
+// use crate::ignite_error::LogResult;
 
 /// Versions supported by the client
 const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_2_0];
@@ -24,11 +27,11 @@ pub struct AsyncDataChannel {
 
 impl AsyncDataChannel {
     /// Try create new data channel between host and the node with a given address.
-    pub async fn connect(ver: ProtocolVersion, addr: SocketAddr, cfg: &ClientConfiguration) -> IgniteResult<Self> {
+    pub async fn connect(_ver: ProtocolVersion, addr: SocketAddr, _cfg: &ClientConfiguration) -> IgniteResult<Self> {
         debug!("Trying to connect to host: {}", addr);
 
         let conn_res = tokio::net::TcpStream::connect(&addr).await;
-        let mut conn = conn_res.chain_error(format!("Can not establish connection to host {}", addr))?;
+        let conn = conn_res.chain_error(format!("Can not establish connection to host {}", addr))?;
 
         let (read_end, write_end) = tokio::io::split(conn);
         // let read_end_mutex = Mutex::new(read_end);
