@@ -39,15 +39,22 @@ impl IgniteError {
     }
 }
 
-impl Error for IgniteError {
-    /// Get error description.
-    fn description(&self) -> &str {
-        self.err.message.as_ref()
+impl From<std::io::Error> for IgniteError {
+    /// Convert from error.
+    fn from(err: std::io::Error) -> Self {
+        Self::new_with_source(err.description().to_owned(), Box::new(err))
     }
+}
 
+impl Error for IgniteError {
     /// Get a source of the error if any.
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         self.err.cause.as_ref().map(|bs| bs.as_ref())
+    }
+
+    /// Get error description.
+    fn description(&self) -> &str {
+        self.err.message.as_ref()
     }
 }
 
