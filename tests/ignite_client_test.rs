@@ -48,12 +48,12 @@ fn ignite_client_create_cache() {
 
     run_async(
         async {
-            let mut _client = IgniteClient::start(cfg).await.unwrap();
+            let mut client = IgniteClient::start(cfg).await.unwrap();
 
-            let _cache_name = make_unique_name();
+            let cache_name = make_unique_name();
 
-            // client.create_cache(cache_name).expect("Success expected");
-            // client.create_cache(cache_name).expect_err("Error expected: cache with the name should be created already");
+            client.create_cache(cache_name).expect("Success expected");
+            client.create_cache(cache_name).expect_err("Error expected: cache with the name should be created already");
         },
     )
 }
