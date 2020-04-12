@@ -1,3 +1,4 @@
+use std::fmt;
 use crate::protocol::{InStream, OutStream, Readable, Writable};
 
 /// Version 1.2.0
@@ -12,6 +13,12 @@ pub struct ProtocolVersion {
     major: i16,
     minor: i16,
     maintenance: i16,
+}
+
+impl fmt::Display for ProtocolVersion {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}.{}.{}", self.major, self.minor, self.maintenance)
+    }
 }
 
 impl ProtocolVersion {

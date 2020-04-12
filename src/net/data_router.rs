@@ -1,11 +1,14 @@
 use rand::seq::SliceRandom;
 use rand::thread_rng;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::Arc;
+
+use tokio::sync::{Mutex, MutexGuard};
+
+use crate::ignite_error::{IgniteError, IgniteResult, LogResult};
+// use crate::protocol::{Readable, Writable};
+use crate::net::async_data_channel::AsyncDataChannel;
 
 use crate::client_configuration::ClientConfiguration;
-use crate::ignite_error::{IgniteError, IgniteResult, LogResult};
-use crate::net::DataChannel;
-use crate::protocol::{Readable, Writable};
 
 /// Component which is responsible for establishing and maintaining reliable
 /// connection link to the Ignite cluster.
@@ -15,7 +18,7 @@ use crate::protocol::{Readable, Writable};
 #[derive(Debug)]
 pub struct DataRouter {
     cfg: Arc<ClientConfiguration>,
-    channel: Mutex<Option<DataChannel>>,
+    channel: Mutex<Option<AsyncDataChannel>>,
 }
 
 impl DataRouter {
@@ -27,64 +30,32 @@ impl DataRouter {
         }
     }
 
-    /// Send request and get a response synchronously.
-    pub fn sync_message<Req, Resp>(&self, req: Req) -> IgniteResult<Resp::Item>
-    where
-        Req: Writable,
-        Resp: Readable,
-    {
-        let mut lock = self.ensure_connected()?;
-
-        // We have already ensured that connection is ready, so we can safely unwrap here.
-        let conn = lock.as_mut().unwrap();
-
-        let res = conn.sync_message::<Req, Resp>(req);
-
-        if res.is_err() {
-            // Connection failure. Resetting.
-           *lock = None;
-        }
-
-        res
-    }
-
     /// Ensure that connection with cluster is established.
-    fn ensure_connected(&self) -> IgniteResult<MutexGuard<Option<DataChannel>>> {
+    async fn ensure_connected(&self) -> IgniteResult<MutexGuard<'_, Option<AsyncDataChannel>>> {
         // We do not care if the inner value is poisoned, as we are going to reassign it
         // without reading.
-        let res = self.channel.lock();
+        let mut guard = self.channel.lock().await;
 
-        let (mut lock, reconnect) = match res {
-            Ok(guard) => {
-                info!("Connection is not established. Connecting");
-                let empty = guard.is_none();
-                (guard, empty)
-            },
-            Err(err) => {
-                warn!("Connection is probably poisoned by a panicked thread. Re-connecting");
-                (err.into_inner(), true)
-            },
-        };
-
-        if reconnect {
+        if guard.is_none() {
+            info!("Connection is not established. Connecting");
             debug!("Re-connecting to a random node");
-            let channel = connect_random_node(&self.cfg)?;
+            let channel = connect_random_node(&self.cfg).await?;
 
-            *lock = Some(channel);
+            *guard = Some(channel);
         }
 
-        Ok(lock)
+        Ok(guard)
     }
 
-    pub fn establish_connection(&self) -> IgniteResult<()> {
-        let _ = self.ensure_connected()?;
+    pub async fn establish_connection(&self) -> IgniteResult<()> {
+        let _ = self.ensure_connected().await?;
 
         Ok(())
     }
 }
 
 /// Try connect to a random node in a cluster.
-fn connect_random_node(cfg: &ClientConfiguration) -> IgniteResult<DataChannel> {
+async fn connect_random_node(cfg: &ClientConfiguration) -> IgniteResult<AsyncDataChannel> {
     let mut end_points = cfg.get_endpoints().to_owned();
 
     &mut end_points[..].shuffle(&mut thread_rng());
@@ -98,12 +69,14 @@ fn connect_random_node(cfg: &ClientConfiguration) -> IgniteResult<DataChannel> {
 
     for end_point in resolved {
         for addr in end_point {
-            let maybe_channel = DataChannel::connect(&addr, cfg)
-                .log_error_w(format!("Can not connect to the host {}", addr));
+            let res = AsyncDataChannel::connect(&addr, cfg).await;
 
-            let channel = match maybe_channel {
-                Some(s) => s,
-                None => continue,
+            let channel = match res {
+                Ok(s) => s,
+                Err(_) => {
+                    res.log_error_w(format!("Can not connect to the host {}", addr));
+                    continue
+                },
             };
 
             return Ok(channel);

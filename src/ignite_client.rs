@@ -15,12 +15,12 @@ pub struct IgniteClient {
 
 impl IgniteClient {
     /// Start new Ignite client.
-    pub fn start(cfg: ClientConfiguration) -> IgniteResult<IgniteClient> {
+    pub async fn start(cfg: ClientConfiguration) -> IgniteResult<IgniteClient> {
         Self::validate_cfg(&cfg)?;
 
         let client = Self::new(cfg);
 
-        client.router.establish_connection()?;
+        client.router.establish_connection().await?;
 
         Ok(client)
     }
