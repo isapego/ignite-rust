@@ -2,25 +2,17 @@ use crate::protocol::{InStream, Readable};
 use crate::protocol::{OutStream, Writable};
 use crate::protocol_version::ProtocolVersion;
 
+use super::{RequestType, Response};
+
 /// Type of client. There is only one type of client
 /// we are interested in - Thin.
 enum ClientType {
     Thin = 2,
 }
 
-/// Type of request message
-enum RequestType {
-    Handshake = 1,
-}
-
-/// Trait for a type representing protocol request message
-pub trait Request {
-    fn write(&self, out: &mut OutStream, ver: &ProtocolVersion);
-}
-
 /// This request is pretty unique as it doesn't implement Request trait.
 /// This is because once its issues the protocol connection is not yet
-/// established, and no ProtocolVersion is known.
+/// established.
 pub struct HandshakeReq<'a> {
     ver: ProtocolVersion,
     user: &'a str,
@@ -45,12 +37,6 @@ impl<'a> Writable for HandshakeReq<'a> {
         out.write_str(self.user);
         out.write_str(self.pass);
     }
-}
-
-/// Response enum.
-pub enum Response<A, R> {
-    Accept(A),
-    Reject(R),
 }
 
 /// Handshake reject. This response is unique just as request, as it does not
