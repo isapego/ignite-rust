@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use super::client_configuration::ClientConfiguration;
 use super::ignite_error::IgniteResult;
-use super::net::DataRouter;
+use super::net::MessageRouter;
 
 use crate::IgniteError;
 use crate::IgniteCache;
@@ -12,7 +12,7 @@ use crate::IgniteCache;
 #[derive(Debug)]
 pub struct IgniteClient {
     cfg: Arc<ClientConfiguration>,
-    router: DataRouter,
+    router: MessageRouter,
 }
 
 impl IgniteClient {
@@ -39,7 +39,7 @@ impl IgniteClient {
     /// Create new instance.
     fn new(cfg0: ClientConfiguration) -> IgniteClient {
         let cfg = Arc::new(cfg0);
-        let router = DataRouter::new(cfg.clone());
+        let router = MessageRouter::new(cfg.clone());
 
         IgniteClient { cfg, router }
     }

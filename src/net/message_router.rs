@@ -5,7 +5,6 @@ use std::sync::Arc;
 use tokio::sync::{Mutex, MutexGuard};
 
 use crate::ignite_error::{IgniteError, IgniteResult, LogResult};
-// use crate::protocol::{Readable, Writable};
 use crate::net::async_data_channel::AsyncDataChannel;
 
 use crate::client_configuration::ClientConfiguration;
@@ -16,12 +15,12 @@ use crate::client_configuration::ClientConfiguration;
 /// It also responsible for choosing which connection to use for a certain
 /// request.
 #[derive(Debug)]
-pub struct DataRouter {
+pub struct MessageRouter {
     cfg: Arc<ClientConfiguration>,
     channel: Mutex<Option<AsyncDataChannel>>,
 }
 
-impl DataRouter {
+impl MessageRouter {
     /// Make new instance.
     pub fn new(cfg: Arc<ClientConfiguration>) -> Self {
         Self {
