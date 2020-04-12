@@ -111,7 +111,7 @@ impl AsyncDataChannel {
 
         match resp {
             Response::Accept(_) => Ok(()),
-            Response::Reject(rej) => Err(IgniteError::new("Handshake failed with error: {}")),
+            Response::Reject(rej) => Err(IgniteError::new(format!("Handshake failed with error: {}", rej.get_error()))),
         }
     }
 
@@ -153,6 +153,7 @@ fn pack_writable(req: &dyn Writable) -> Box<[u8]> {
 }
 
 /// Pack request with ID into boxed slice.
+#[allow(dead_code)]
 fn pack_request(req: &dyn Writable, id: i32) -> Box<[u8]> {
     let stream = OutStream::new();
 

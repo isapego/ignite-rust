@@ -9,6 +9,7 @@ pub struct RequestEncoder(());
 
 impl RequestEncoder {
     /// Creates a new `RequestEncoder` instance.
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self(())
     }

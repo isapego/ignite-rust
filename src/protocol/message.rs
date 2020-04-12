@@ -13,11 +13,6 @@ enum RequestType {
     Handshake = 1,
 }
 
-/// Type of response message
-enum ResponseType {
-    Handshake = 1,
-}
-
 /// Trait for a type representing protocol request message
 pub trait Request {
     fn write(&self, out: &mut OutStream, ver: &ProtocolVersion);
@@ -60,6 +55,7 @@ pub enum Response<A, R> {
 
 /// Handshake reject. This response is unique just as request, as it does not
 /// implement Response trait.
+#[allow(dead_code)]
 pub struct HandshakeReject {
     ver: ProtocolVersion,
     error: String,

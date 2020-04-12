@@ -13,6 +13,7 @@ pub trait ProtocolType {
 }
 
 /// Write full value
+#[allow(dead_code)]
 pub fn write_full<T, I>(val: T, stream: &OutStream)
 where
     T: ProtocolType<Item = I>,
@@ -22,6 +23,7 @@ where
 }
 
 /// Read full value
+#[allow(dead_code)]
 pub fn read_full<T, I>(stream: &InStream) -> Option<I>
 where
     T: ProtocolType<Item = I>,

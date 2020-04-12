@@ -27,6 +27,7 @@ impl OutStream {
     }
 
     /// Make new instance with required capacity
+    #[allow(dead_code)]
     pub fn with_capacity(cap: usize) -> Self {
         Self {
             buffer: GrowingBuffer::with_capacity(cap),
@@ -45,6 +46,7 @@ impl OutStream {
     }
 
     /// Get current position in stream
+    #[allow(dead_code)]
     pub fn position(&self) -> usize {
         self.pos.get()
     }
@@ -122,6 +124,7 @@ impl OutStream {
     }
 
     /// Reserve a space in a stream for a i32 value.
+    #[allow(dead_code)]
     pub fn reserve_i32(&self) -> ReservedI32 {
         self.ensure_capacity(4);
 
@@ -454,7 +457,7 @@ fn test_reserve_i32_panic() {
         let _reserved = out.reserve_i32();
     }
 
-    let mem = out.into_memory();
+    let _mem = out.into_memory();
 }
 
 #[test]

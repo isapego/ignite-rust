@@ -2,12 +2,9 @@ use crate::protocol::{InStream, OutStream, Readable, Writable};
 use std::fmt;
 
 /// Version 1.2.0
-pub const VERSION_1_2_0: ProtocolVersion = ProtocolVersion {
-    major: 1,
-    minor: 2,
-    maintenance: 0,
-};
+pub const VERSION_1_2_0: ProtocolVersion = ProtocolVersion::new(1,2,0);
 
+/// Simple abstraction over protocol version.
 #[derive(Copy, Clone, Debug)]
 pub struct ProtocolVersion {
     major: i16,
@@ -15,6 +12,8 @@ pub struct ProtocolVersion {
     maintenance: i16,
 }
 
+/// Writing it as a simple version.
+/// For more details use Debug format: {:?}
 impl fmt::Display for ProtocolVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}.{}.{}", self.major, self.minor, self.maintenance)
@@ -23,7 +22,7 @@ impl fmt::Display for ProtocolVersion {
 
 impl ProtocolVersion {
     /// Make new instance
-    pub fn new(major: i16, minor: i16, maintenance: i16) -> Self {
+    pub const fn new(major: i16, minor: i16, maintenance: i16) -> Self {
         Self {
             major,
             minor,

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 /// Byte type header
 pub const BYTE: i8 = 1;
 

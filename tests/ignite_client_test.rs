@@ -3,14 +3,13 @@ extern crate ignite_rust;
 extern crate log;
 extern crate rand;
 
-use futures::TryFutureExt;
 use ignite_rust::*;
 use rand::distributions::Alphanumeric;
 use rand::{thread_rng, Rng};
-use std::sync::{Once, ONCE_INIT};
+use std::sync::Once;
 use tokio::macros::support::Future;
 
-static LOG_INIT: Once = ONCE_INIT;
+static LOG_INIT: Once = Once::new();
 
 fn setup() {
     LOG_INIT.call_once(|| {

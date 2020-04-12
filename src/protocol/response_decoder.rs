@@ -9,6 +9,7 @@ pub struct ResponseDecoder(());
 
 impl ResponseDecoder {
     /// Creates a new `ResponseDecoder` instance.
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self(())
     }
