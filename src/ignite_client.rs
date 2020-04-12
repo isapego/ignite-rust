@@ -3,7 +3,9 @@ use std::sync::Arc;
 use super::client_configuration::ClientConfiguration;
 use super::ignite_error::IgniteResult;
 use super::net::DataRouter;
+
 use crate::IgniteError;
+use crate::IgniteCache;
 
 /// Ignite client
 /// Main entry point for the Ignite Rust thin client API.
@@ -40,6 +42,12 @@ impl IgniteClient {
         let router = DataRouter::new(cfg.clone());
 
         IgniteClient { cfg, router }
+    }
+
+    /// Create a new cache instance.
+    /// Fails if the cache already exists.
+    pub async fn create_cache<K, V>(&self, _name: String) -> IgniteResult<IgniteCache<K, V>> {
+        unimplemented!();
     }
 }
 
