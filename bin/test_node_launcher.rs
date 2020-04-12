@@ -1,8 +1,8 @@
 use std::env;
-use std::process::{Command, Child};
-use std::path::Path;
 use std::env::current_dir;
 use std::ffi::OsStr;
+use std::path::Path;
+use std::process::{Child, Command};
 
 fn start<P: AsRef<OsStr>>(path: P) -> Child {
     let ignite_home = env::var_os("IGNITE_HOME").expect("IGNITE_HOME is not set");

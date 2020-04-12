@@ -1,6 +1,6 @@
+use crate::protocol::header;
 use std::borrow::Cow;
 use std::cell::Cell;
-use crate::protocol::header;
 
 // Trait for a type that can be read from a stream
 pub trait Readable {
@@ -88,7 +88,7 @@ impl<'a> InStream<'a> {
                 self.inc_pos(4 + len as usize);
 
                 Some(String::from_utf8_lossy(&self.mem[pos..pos + len as usize]))
-            },
+            }
             _ => panic!("Unexpected header: {}", hdr),
         }
     }

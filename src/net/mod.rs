@@ -1,5 +1,5 @@
-mod data_router;
 mod async_data_channel;
+mod data_router;
 mod end_point;
 pub mod utils;
 

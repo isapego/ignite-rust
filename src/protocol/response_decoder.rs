@@ -9,7 +9,9 @@ pub struct ResponseDecoder(());
 
 impl ResponseDecoder {
     /// Creates a new `ResponseDecoder` instance.
-    pub fn new() -> Self { Self(())  }
+    pub fn new() -> Self {
+        Self(())
+    }
 }
 
 impl Decoder for ResponseDecoder {

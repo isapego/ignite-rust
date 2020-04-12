@@ -1,4 +1,4 @@
-use bytes::{Bytes, BufMut, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
 use tokio_util::codec::Encoder;
 
 use crate::IgniteError;
@@ -9,7 +9,9 @@ pub struct RequestEncoder(());
 
 impl RequestEncoder {
     /// Creates a new `RequestEncoder` instance.
-    pub fn new() -> Self { Self(())  }
+    pub fn new() -> Self {
+        Self(())
+    }
 }
 
 impl Encoder<Bytes> for RequestEncoder {

@@ -1,5 +1,5 @@
-use std::fmt;
 use crate::protocol::{InStream, OutStream, Readable, Writable};
+use std::fmt;
 
 /// Version 1.2.0
 pub const VERSION_1_2_0: ProtocolVersion = ProtocolVersion {

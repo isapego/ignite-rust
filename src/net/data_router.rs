@@ -75,13 +75,15 @@ async fn connect_random_node(cfg: &ClientConfiguration) -> IgniteResult<AsyncDat
                 Ok(s) => s,
                 Err(_) => {
                     res.log_error_w(format!("Can not connect to the host {}", addr));
-                    continue
-                },
+                    continue;
+                }
             };
 
             return Ok(channel);
         }
     }
 
-    Err(IgniteError::new("Can not connect to any host. See logs for details"))
+    Err(IgniteError::new(
+        "Can not connect to any host. See logs for details",
+    ))
 }

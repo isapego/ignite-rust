@@ -1,16 +1,16 @@
 use std::net::SocketAddr;
 
-use tokio::net::TcpStream;
-use tokio::io::{ReadHalf, WriteHalf};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::{ReadHalf, WriteHalf};
+use tokio::net::TcpStream;
 use tokio::sync::Mutex;
 
+use crate::ignite_error::ChainResult;
+use crate::ignite_error::{IgniteResult, LogResult};
+use crate::protocol::message::{HandshakeReq, HandshakeRsp, Response};
+use crate::protocol::{InStream, OutStream, Readable, Writable};
 use crate::protocol_version::{ProtocolVersion, VERSION_1_2_0};
 use crate::{ClientConfiguration, IgniteError};
-use crate::ignite_error::{IgniteResult, LogResult};
-use crate::ignite_error::ChainResult;
-use crate::protocol::message::{HandshakeReq, HandshakeRsp, Response};
-use crate::protocol::{OutStream, InStream, Writable, Readable};
 
 /// Versions supported by the client
 const SUPPORTED_VERSIONS: [ProtocolVersion; 1] = [VERSION_1_2_0];
@@ -29,20 +29,26 @@ impl AsyncDataChannel {
         debug!("Trying to connect to host: {}", addr);
 
         let conn_res = tokio::net::TcpStream::connect(&addr).await;
-        let conn = conn_res.chain_error(format!("Can not establish connection to host {}", addr))?;
+        let conn =
+            conn_res.chain_error(format!("Can not establish connection to host {}", addr))?;
 
         let (mut read_end, mut write_end) = tokio::io::split(conn);
         let ver = Self::negotiate_version(
             &mut write_end,
             &mut read_end,
             cfg.get_user(),
-            cfg.get_password()
-        ).await?;
+            cfg.get_password(),
+        )
+        .await?;
 
         let read_end_mutex = Mutex::new(read_end);
         let write_end_mutex = Mutex::new(write_end);
 
-        Ok(Self{read_end_mutex, write_end_mutex, ver})
+        Ok(Self {
+            read_end_mutex,
+            write_end_mutex,
+            ver,
+        })
     }
 
     /// Negotiate protocol version to use.
@@ -50,20 +56,22 @@ impl AsyncDataChannel {
         write_end: &mut WriteHalf<TcpStream>,
         read_end: &mut ReadHalf<TcpStream>,
         user: &str,
-        pwd: &str) -> IgniteResult<ProtocolVersion>
-    {
+        pwd: &str,
+    ) -> IgniteResult<ProtocolVersion> {
         for ver in SUPPORTED_VERSIONS.iter() {
             let res = Self::handshake(write_end, read_end, ver, user, pwd).await;
 
             match res {
-                Err(_) => res.log_error_w(
-                    format!("Can not perform handshake using version {:?}", ver)
-                ),
+                Err(_) => {
+                    res.log_error_w(format!("Can not perform handshake using version {:?}", ver))
+                }
                 Ok(()) => return Ok(*ver),
             };
         }
 
-        Err(IgniteError::new("Failed to establish connection to a node using any of supported protocol versions"))
+        Err(IgniteError::new(
+            "Failed to establish connection to a node using any of supported protocol versions",
+        ))
     }
 
     async fn handshake(
@@ -71,19 +79,25 @@ impl AsyncDataChannel {
         read_end: &mut ReadHalf<TcpStream>,
         ver: &ProtocolVersion,
         user: &str,
-        pwd: &str) -> IgniteResult<()>
-    {
+        pwd: &str,
+    ) -> IgniteResult<()> {
         Self::handshake_request(write_end, ver, user, pwd).await?;
         Self::handshake_response(read_end).await?;
         Ok(())
     }
 
     /// Send handshake request using a connection.
-    async fn handshake_request(write_end: &mut WriteHalf<TcpStream>, ver: &ProtocolVersion, user: &str, pwd: &str) -> IgniteResult<()> {
+    async fn handshake_request(
+        write_end: &mut WriteHalf<TcpStream>,
+        ver: &ProtocolVersion,
+        user: &str,
+        pwd: &str,
+    ) -> IgniteResult<()> {
         let req = HandshakeReq::new(*ver, user, pwd);
         let data = pack_writable(&req);
 
-        write_end.write_all(&data)
+        write_end
+            .write_all(&data)
             .await
             .chain_error("Can send handshake request to node".to_owned())?;
 
@@ -107,7 +121,8 @@ impl AsyncDataChannel {
 
         let mut len_buf = [0u8; 4];
 
-        read_end.read_exact(&mut len_buf)
+        read_end
+            .read_exact(&mut len_buf)
             .await
             .chain_error("Error while reading response length")?;
 
@@ -115,7 +130,8 @@ impl AsyncDataChannel {
 
         let mut buf = vec![0u8; len as usize].into_boxed_slice();
 
-        read_end.read_exact(&mut buf)
+        read_end
+            .read_exact(&mut buf)
             .await
             .chain_error("Error while reading response payload")?;
 
