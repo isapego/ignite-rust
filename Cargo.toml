@@ -26,6 +26,9 @@ codegen-units = 16
 incremental = true
 overflow-checks = true
 
+[features]
+test = []
+
 [[bin]]
 name = "test_node_launcher"
 path = "bin/test_node_launcher.rs"
