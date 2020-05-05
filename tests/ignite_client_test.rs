@@ -3,26 +3,14 @@ extern crate ignite_rust;
 extern crate log;
 extern crate rand;
 
+mod utils;
+use utils::*;
+
 use ignite_rust::*;
-use rand::distributions::Alphanumeric;
-use rand::{thread_rng, Rng};
-use std::sync::Once;
-use tokio::macros::support::Future;
 
-static LOG_INIT: Once = Once::new();
-
-fn setup() {
-    LOG_INIT.call_once(|| {
-        env_logger::init();
-    });
-}
-
-fn run_async<F: Future>(future: F) {
-    tokio::runtime::Runtime::new().unwrap().block_on(future);
-}
-
-fn make_unique_name() -> String {
-    thread_rng().sample_iter(&Alphanumeric).take(64).collect()
+/// Setup code for the tests in the module
+pub fn setup() {
+    setup_log();
 }
 
 #[test]
@@ -34,7 +22,11 @@ fn ignite_client_start_with_config() {
 
     run_async(
         async {
+            let mut node = start_test_node("default.xml").await.unwrap();
+
             IgniteClient::start(cfg).await.unwrap();
+
+            node.stop().unwrap();
         },
     );
 }
@@ -48,6 +40,8 @@ fn ignite_client_create_cache() {
 
     run_async(
         async {
+            let mut node = start_test_node("default.xml").await.unwrap();
+
             let client = IgniteClient::start(cfg).await.unwrap();
 
             let cache_name = make_unique_name();
@@ -59,6 +53,8 @@ fn ignite_client_create_cache() {
             client.create_cache::<i32, i32>(cache_name)
                 .await
                 .expect_err("Error expected: cache with the name should be created already");
+
+            node.stop().unwrap();
         },
     )
 }

@@ -3,7 +3,7 @@ use crate::net::EndPoint;
 use crate::IgniteResult;
 use std::convert::Into;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ClientConfiguration {
     end_points: Vec<EndPoint>,
     user: String,

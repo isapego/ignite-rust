@@ -14,7 +14,7 @@ bytes = "0.5.4"
 futures = "0.3.4"
 
 [dev-dependencies]
-env_logger = "0.6.0"
+env_logger = "0.7.1"
 
 [profile.test]
 opt-level = 0
@@ -25,11 +25,3 @@ debug-assertions = true
 codegen-units = 16
 incremental = true
 overflow-checks = true
-
-[features]
-test = []
-
-[[bin]]
-name = "test_node_launcher"
-path = "bin/test_node_launcher.rs"
-required-features = ["test"]
